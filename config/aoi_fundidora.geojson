@@ -1,0 +1,22 @@
+{
+  "type": "Feature",
+  "properties": {
+    "id": "fundidora-pilot-v1",
+    "name": "Parque Fundidora pilot AOI",
+    "city": "Monterrey",
+    "state": "Nuevo León",
+    "country": "Mexico",
+    "purpose": "Sentinel-2 urban vegetation baseline",
+    "note": "Bounding AOI around Parque Fundidora; it is not an official legal park boundary."
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[
+      [-100.2990, 25.6710],
+      [-100.2760, 25.6710],
+      [-100.2760, 25.6840],
+      [-100.2990, 25.6840],
+      [-100.2990, 25.6710]
+    ]]
+  }
+}
