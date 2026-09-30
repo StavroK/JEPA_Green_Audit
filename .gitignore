@@ -13,3 +13,10 @@ data/processed/
 *.npy
 *.npz
 .DS_Store
+
+.venv-jepa/
+models/
+vendor/
+outputs/*embedding*.json
+*.pth
+*.pth.tar
