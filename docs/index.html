@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI4GOOD Urban Green Intelligence</title>
+  <meta name="description" content="JEPA Green Audit — self-supervised urban vegetation monitoring prototype by AI4GOOD México." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">AI4GOOD MÉXICO · APPLIED AI LAB</p>
+      <h1>Urban Green Intelligence</h1>
+      <p class="subtitle">JEPA Green Audit · self-supervised vegetation monitoring prototype</p>
+    </div>
+    <a class="brand-link" href="https://www.ai4good.mx" target="_blank" rel="noreferrer">ai4good.mx ↗</a>
+  </header>
+
+  <main>
+    <section class="notice">
+      <strong>Prototype mode.</strong>
+      Values below are sample estimates used to demonstrate the audit workflow. They are not current measurements of Monterrey and are not biological tree-health diagnoses.
+    </section>
+
+    <section class="controls panel">
+      <label>
+        Pilot area
+        <select id="zoneSelect"></select>
+      </label>
+      <label>
+        Earlier observation
+        <select id="beforeSelect">
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+        </select>
+      </label>
+      <label>
+        Later observation
+        <select id="afterSelect">
+          <option value="2026">2026</option>
+          <option value="2025">2025</option>
+        </select>
+      </label>
+      <button id="runAudit">Run green audit</button>
+    </section>
+
+    <section class="kpis" aria-label="Audit indicators">
+      <article class="kpi panel"><span>Vegetation coverage</span><strong id="coverage">—</strong><small>latest sample estimate</small></article>
+      <article class="kpi panel"><span>Change</span><strong id="change">—</strong><small>percentage points</small></article>
+      <article class="kpi panel"><span>JEPA change signal</span><strong id="jepa">—</strong><small>normalized prototype signal</small></article>
+      <article class="kpi panel"><span>Audit priority</span><strong id="priority">—</strong><small>0–100 screening score</small></article>
+    </section>
+
+    <section class="workspace">
+      <article class="panel map-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">SPATIAL SCREENING</p>
+            <h2>Urban vegetation audit grid</h2>
+          </div>
+          <div class="legend"><span class="dot stable"></span>Stable <span class="dot review"></span>Review <span class="dot high"></span>High change</div>
+        </div>
+        <div id="auditMap" class="audit-map" role="img" aria-label="Illustrative urban audit grid"></div>
+        <p class="caption">Illustrative cells, not a geographic basemap. Real AOI geometry and raster overlays are a production milestone.</p>
+      </article>
+
+      <aside class="panel finding">
+        <p class="eyebrow">AUDIT FINDING</p>
+        <h2 id="findingTitle">Select a zone</h2>
+        <div class="finding-row"><span>Earlier coverage</span><strong id="beforeCoverage">—</strong></div>
+        <div class="finding-row"><span>Later coverage</span><strong id="afterCoverage">—</strong></div>
+        <div class="finding-row"><span>Direction</span><strong id="direction">—</strong></div>
+        <hr />
+        <h3>Why this zone was flagged</h3>
+        <p id="explanation">Run the audit to display a transparent explanation.</p>
+        <h3>Recommended next step</h3>
+        <p id="action">Review source imagery and quality metadata before deciding whether field validation is warranted.</p>
+      </aside>
+    </section>
+
+    <section class="panel pipeline">
+      <p class="eyebrow">MODEL PIPELINE</p>
+      <h2>Where JEPA fits</h2>
+      <div class="pipeline-grid">
+        <div><b>1</b><span>Satellite / aerial imagery</span></div>
+        <div><b>2</b><span>Preprocess & align observations</span></div>
+        <div><b>3</b><span>JEPA latent representations</span></div>
+        <div><b>4</b><span>NDVI + spectral features</span></div>
+        <div><b>5</b><span>Segmentation & temporal change</span></div>
+        <div><b>6</b><span>Auditable indicators & field review</span></div>
+      </div>
+    </section>
+
+    <section class="panel methodology">
+      <p class="eyebrow">RESEARCH QUESTION</p>
+      <h2>Can self-supervision reduce labeling cost?</h2>
+      <p>The benchmark is designed to compare supervised baselines, DINO-style self-supervision, JEPA, NDVI-only, and JEPA + NDVI at progressively smaller labeled-data fractions.</p>
+      <div class="fractions" aria-label="Label fractions">
+        <span>100%</span><span>50%</span><span>25%</span><span>10%</span><span>5%</span><span>1%</span>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>AI4GOOD México · JEPA Green Audit</span>
+    <span>Research prototype · human validation required</span>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
