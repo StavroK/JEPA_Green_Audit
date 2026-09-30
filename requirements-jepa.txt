@@ -1,0 +1,6 @@
+# Optional heavyweight dependencies for local I-JEPA inference.
+# Install only when running the research encoder.
+-r requirements.txt
+torch>=2.0
+torchvision>=0.15
+Pillow>=10.0
