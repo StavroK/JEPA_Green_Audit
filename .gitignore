@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+.env
+data/raw/
+data/interim/
+data/processed/
+*.tif
+*.tiff
+*.jp2
+*.npy
+*.npz
+.DS_Store
