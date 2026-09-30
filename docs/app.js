@@ -29,10 +29,10 @@ function run(){
   const z=zones[Number(zoneSelect.value)];
   const delta=z.after-z.before;
   const loss=Math.max(0,-delta);
-  const priority=Math.round(clamp((loss/10)*65+z.jpa*35,0,100));
+  const priority=Math.round(clamp((loss/10)*65+z.jepa*35,0,100));
   document.getElementById("coverage").textContent=z.after.toFixed(1)+"%";
   document.getElementById("change").textContent=(delta>0?"+":"")+delta.toFixed(1)+" pp";
-  document.getElementById("jepa").textContent=z.jpa.toFixed(2);
+  document.getElementById("jepa").textContent=z.jepa.toFixed(2);
   document.getElementById("priority").textContent=priority+"/100";
   document.getElementById("findingTitle").textContent=z.name;
   document.getElementById("beforeCoverage").textContent=z.before.toFixed(1)+"%";
@@ -40,8 +40,8 @@ function run(){
   document.getElementById("direction").textContent=delta>0?"Estimated gain":delta<0?"Estimated loss":"Stable";
   document.getElementById("explanation").textContent=
     delta<0
-      ? `Sample coverage decreased by ${Math.abs(delta).toFixed(1)} percentage points while the latent-representation change signal is ${z.jpa.toFixed(2)}. The combination raises this zone for imagery review; it does not establish why vegetation changed.`
-      : `Sample coverage is stable or improving. The latent-representation change signal is ${z.jpa.toFixed(2)}; review is lower priority unless source-image quality or local context suggests otherwise.`;
+      ? `Sample coverage decreased by ${Math.abs(delta).toFixed(1)} percentage points while the latent-representation change signal is ${z.jepa.toFixed(2)}. The combination raises this zone for imagery review; it does not establish why vegetation changed.`
+      : `Sample coverage is stable or improving. The latent-representation change signal is ${z.jepa.toFixed(2)}; review is lower priority unless source-image quality or local context suggests otherwise.`;
   document.getElementById("action").textContent=
     priority>=60
       ? "Inspect aligned before/after imagery, confirm cloud and seasonal quality, compare NDVI, and create a field-validation task if the change remains credible."
