@@ -20,11 +20,16 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import messagebox
 
-from PIL import Image, ImageTk
+import numpy as np
+from PIL import Image, ImageDraw, ImageTk
 
 DEFAULT_CSV = Path("data/labels/fundidora_m3/fundidora_patch_labels.csv")
+RGB_DIR = Path("data/interim/fundidora")
 ALLOWED_LABELS = {"vegetation", "non_vegetation", "uncertain"}
-DISPLAY_SIZE = 448
+GRID = 16
+TARGET_DISPLAY_SIZE = 280
+CONTEXT_DISPLAY_SIZE = 360
+OVERVIEW_DISPLAY_SIZE = 420
 
 
 def load_rows(csv_path: Path) -> tuple[list[dict[str, str]], list[str]]:
@@ -81,8 +86,8 @@ class LabelingApp:
         self.photo = None
 
         root.title("JEPA Green Audit — M3 RGB Labeling")
-        root.geometry("760x720")
-        root.minsize(680, 650)
+        root.geometry("1280x820")
+        root.minsize(1100, 760)
 
         self.title_var = tk.StringVar()
         self.status_var = tk.StringVar()
@@ -92,12 +97,30 @@ class LabelingApp:
         tk.Label(root, textvariable=self.title_var, font=("Segoe UI", 16, "bold")).pack(pady=(12, 4))
         tk.Label(
             root,
-            text="RGB-only review. Do not consult NDVI or SCL.",
+            text="Label the dominant visible cover in the highlighted target cell using RGB only. Do not consult NDVI or SCL.",
             font=("Segoe UI", 10),
         ).pack()
 
-        self.image_label = tk.Label(root, bd=2, relief="sunken")
-        self.image_label.pack(pady=12)
+        image_frame = tk.Frame(root)
+        image_frame.pack(pady=10)
+
+        left = tk.Frame(image_frame)
+        left.grid(row=0, column=0, padx=8)
+        tk.Label(left, text="Target cell", font=("Segoe UI", 10, "bold")).pack()
+        self.target_label = tk.Label(left, bd=2, relief="sunken")
+        self.target_label.pack(pady=4)
+
+        middle = tk.Frame(image_frame)
+        middle.grid(row=0, column=1, padx=8)
+        tk.Label(middle, text="RGB context", font=("Segoe UI", 10, "bold")).pack()
+        self.context_label = tk.Label(middle, bd=2, relief="sunken")
+        self.context_label.pack(pady=4)
+
+        right = tk.Frame(image_frame)
+        right.grid(row=0, column=2, padx=8)
+        tk.Label(right, text="AOI location", font=("Segoe UI", 10, "bold")).pack()
+        self.overview_label = tk.Label(right, bd=2, relief="sunken")
+        self.overview_label.pack(pady=4)
 
         tk.Label(root, textvariable=self.current_label_var, font=("Segoe UI", 11, "bold")).pack()
         tk.Label(root, textvariable=self.status_var, font=("Segoe UI", 10)).pack(pady=(4, 0))
@@ -150,12 +173,67 @@ class LabelingApp:
             messagebox.showerror("Missing patch", f"Patch not found:\n{patch_path}")
             return
 
-        with Image.open(patch_path) as image:
-            image = image.convert("RGB")
-            image.thumbnail((DISPLAY_SIZE, DISPLAY_SIZE), Image.Resampling.NEAREST)
-            self.photo = ImageTk.PhotoImage(image)
+        year = row["year"]
+        grid_row = int(row["row"])
+        grid_col = int(row["col"])
+        source_path = RGB_DIR / f"fundidora_{year}_rgb.png"
+        if not source_path.exists():
+            messagebox.showerror("Missing RGB source", f"Source not found:\n{source_path}")
+            return
 
-        self.image_label.configure(image=self.photo)
+        with Image.open(source_path) as src:
+            src = src.convert("RGB")
+            width, height = src.size
+            x_edges = np.linspace(0, width, GRID + 1, dtype=int)
+            y_edges = np.linspace(0, height, GRID + 1, dtype=int)
+
+            x0, x1 = int(x_edges[grid_col]), int(x_edges[grid_col + 1])
+            y0, y1 = int(y_edges[grid_row]), int(y_edges[grid_row + 1])
+
+            # Target cell: smoothed enlargement for visual interpretation.
+            target = src.crop((x0, y0, x1, y1)).resize(
+                (TARGET_DISPLAY_SIZE, TARGET_DISPLAY_SIZE),
+                Image.Resampling.BICUBIC,
+            )
+
+            # Context: roughly a 5x5-cell neighborhood around the target.
+            radius = 2
+            c0 = max(0, grid_col - radius)
+            c1 = min(GRID, grid_col + radius + 1)
+            r0 = max(0, grid_row - radius)
+            r1 = min(GRID, grid_row + radius + 1)
+            context = src.crop(
+                (
+                    int(x_edges[c0]),
+                    int(y_edges[r0]),
+                    int(x_edges[c1]),
+                    int(y_edges[r1]),
+                )
+            ).resize(
+                (CONTEXT_DISPLAY_SIZE, CONTEXT_DISPLAY_SIZE),
+                Image.Resampling.BICUBIC,
+            )
+
+            # AOI overview with the target cell highlighted.
+            overview = src.copy()
+            draw = ImageDraw.Draw(overview)
+            line_width = max(1, round(max(width, height) / 120))
+            draw.rectangle(
+                (x0, y0, max(x0 + 1, x1 - 1), max(y0 + 1, y1 - 1)),
+                outline="white",
+                width=line_width,
+            )
+            overview.thumbnail(
+                (OVERVIEW_DISPLAY_SIZE, OVERVIEW_DISPLAY_SIZE),
+                Image.Resampling.BICUBIC,
+            )
+
+        self.target_photo = ImageTk.PhotoImage(target)
+        self.context_photo = ImageTk.PhotoImage(context)
+        self.overview_photo = ImageTk.PhotoImage(overview)
+        self.target_label.configure(image=self.target_photo)
+        self.context_label.configure(image=self.context_photo)
+        self.overview_label.configure(image=self.overview_photo)
         self.title_var.set(
             f"{row['year']} · row {int(row['row']):02d} · col {int(row['col']):02d}"
         )
