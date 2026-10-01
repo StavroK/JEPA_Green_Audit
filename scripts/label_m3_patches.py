@@ -87,21 +87,49 @@ class LabelingApp:
 
         root.title("JEPA Green Audit — M3 RGB Labeling")
         root.geometry("1280x820")
-        root.minsize(1100, 760)
+        root.minsize(900, 650)
+
+        # Scrollable content area so controls remain reachable on smaller screens.
+        shell = tk.Frame(root)
+        shell.pack(fill="both", expand=True)
+
+        self.canvas = tk.Canvas(shell, highlightthickness=0)
+        scrollbar = tk.Scrollbar(shell, orient="vertical", command=self.canvas.yview)
+        scrollbar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.canvas.configure(yscrollcommand=scrollbar.set)
+
+        content = tk.Frame(self.canvas)
+        self.content_window = self.canvas.create_window((0, 0), window=content, anchor="nw")
+
+        def _sync_scroll_region(event=None):
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+        def _sync_content_width(event):
+            self.canvas.itemconfigure(self.content_window, width=event.width)
+
+        content.bind("<Configure>", _sync_scroll_region)
+        self.canvas.bind("<Configure>", _sync_content_width)
+
+        def _on_mousewheel(event):
+            delta = -1 if event.delta > 0 else 1
+            self.canvas.yview_scroll(delta * 3, "units")
+
+        self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
         self.title_var = tk.StringVar()
         self.status_var = tk.StringVar()
         self.counts_var = tk.StringVar()
         self.current_label_var = tk.StringVar()
 
-        tk.Label(root, textvariable=self.title_var, font=("Segoe UI", 16, "bold")).pack(pady=(12, 4))
+        tk.Label(content, textvariable=self.title_var, font=("Segoe UI", 16, "bold")).pack(pady=(12, 4))
         tk.Label(
-            root,
+            content,
             text="Label the dominant visible cover in the highlighted 8x8 review cell using RGB only. Do not consult NDVI or SCL.",
             font=("Segoe UI", 10),
         ).pack()
 
-        image_frame = tk.Frame(root)
+        image_frame = tk.Frame(content)
         image_frame.pack(pady=10)
 
         left = tk.Frame(image_frame)
@@ -122,9 +150,9 @@ class LabelingApp:
         self.overview_label = tk.Label(right, bd=2, relief="sunken")
         self.overview_label.pack(pady=4)
 
-        tk.Label(root, textvariable=self.current_label_var, font=("Segoe UI", 11, "bold")).pack()
+        tk.Label(content, textvariable=self.current_label_var, font=("Segoe UI", 11, "bold")).pack()
 
-        criteria = tk.LabelFrame(root, text="Labeling criteria", padx=12, pady=8)
+        criteria = tk.LabelFrame(content, text="Labeling criteria", padx=12, pady=8)
         criteria.pack(fill="x", padx=36, pady=(6, 8))
         criteria_text = (
             "Vegetation (V): vegetation is the dominant visible cover in the target cell "
@@ -145,16 +173,16 @@ class LabelingApp:
             font=("Segoe UI", 9),
         ).pack(fill="x")
 
-        tk.Label(root, textvariable=self.status_var, font=("Segoe UI", 10)).pack(pady=(4, 0))
-        tk.Label(root, textvariable=self.counts_var, font=("Segoe UI", 9)).pack(pady=(2, 10))
+        tk.Label(content, textvariable=self.status_var, font=("Segoe UI", 10)).pack(pady=(4, 0))
+        tk.Label(content, textvariable=self.counts_var, font=("Segoe UI", 9)).pack(pady=(2, 10))
 
-        buttons = tk.Frame(root)
+        buttons = tk.Frame(content)
         buttons.pack(pady=4)
         self._button(buttons, "V  Vegetation", lambda: self.set_label("vegetation"), 0)
         self._button(buttons, "N  Non-vegetation", lambda: self.set_label("non_vegetation"), 1)
         self._button(buttons, "U  Uncertain", lambda: self.set_label("uncertain"), 2)
 
-        nav = tk.Frame(root)
+        nav = tk.Frame(content)
         nav.pack(pady=8)
         tk.Button(nav, text="← Back (B)", command=self.back, width=16).grid(row=0, column=0, padx=5)
         tk.Button(nav, text="Skip →", command=self.forward, width=16).grid(row=0, column=1, padx=5)
@@ -164,7 +192,46 @@ class LabelingApp:
             "Keyboard: V vegetation · N non-vegetation · U uncertain · "
             "B/← back · → skip · Q/Esc quit"
         )
-        tk.Label(root, text=help_text, font=("Segoe UI", 9)).pack(pady=(8, 0))
+        tk.Label(content, text=help_text, font=("Segoe UI", 9)).pack(pady=(8, 16))
+
+        # Sticky bottom action bar remains visible even when the content is scrolled.
+        sticky = tk.Frame(root, bd=1, relief="raised")
+        sticky.pack(side="bottom", fill="x")
+        tk.Label(
+            sticky,
+            text="Quick label:",
+            font=("Segoe UI", 9, "bold"),
+        ).pack(side="left", padx=(12, 8), pady=6)
+        tk.Button(
+            sticky,
+            text="V Vegetation",
+            command=lambda: self.set_label("vegetation"),
+            width=16,
+        ).pack(side="left", padx=4, pady=6)
+        tk.Button(
+            sticky,
+            text="N Non-vegetation",
+            command=lambda: self.set_label("non_vegetation"),
+            width=18,
+        ).pack(side="left", padx=4, pady=6)
+        tk.Button(
+            sticky,
+            text="U Uncertain",
+            command=lambda: self.set_label("uncertain"),
+            width=16,
+        ).pack(side="left", padx=4, pady=6)
+        tk.Button(
+            sticky,
+            text="← Back",
+            command=self.back,
+            width=12,
+        ).pack(side="right", padx=4, pady=6)
+        tk.Button(
+            sticky,
+            text="Save & Quit",
+            command=self.quit,
+            width=14,
+        ).pack(side="right", padx=(4, 12), pady=6)
 
         root.bind("<Key-v>", lambda event: self.set_label("vegetation"))
         root.bind("<Key-V>", lambda event: self.set_label("vegetation"))
