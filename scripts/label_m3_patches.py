@@ -123,6 +123,28 @@ class LabelingApp:
         self.overview_label.pack(pady=4)
 
         tk.Label(root, textvariable=self.current_label_var, font=("Segoe UI", 11, "bold")).pack()
+
+        criteria = tk.LabelFrame(root, text="Labeling criteria", padx=12, pady=8)
+        criteria.pack(fill="x", padx=36, pady=(6, 8))
+        criteria_text = (
+            "Vegetation (V): vegetation is the dominant visible cover in the target cell "
+            "(roughly more than half).\n"
+            "Non-vegetation (N): roads, roofs, buildings, bare ground, water, or other "
+            "non-vegetated surfaces dominate the target cell.\n"
+            "Uncertain (U): the target cell is genuinely mixed, blurred, obscured, or you "
+            "cannot make a confident dominant-cover judgment.\n"
+            "Use only the RGB target/context/AOI views. Do not consult NDVI or SCL. "
+            "Classify visible cover only; do not infer tree health."
+        )
+        tk.Label(
+            criteria,
+            text=criteria_text,
+            justify="left",
+            anchor="w",
+            wraplength=1120,
+            font=("Segoe UI", 9),
+        ).pack(fill="x")
+
         tk.Label(root, textvariable=self.status_var, font=("Segoe UI", 10)).pack(pady=(4, 0))
         tk.Label(root, textvariable=self.counts_var, font=("Segoe UI", 9)).pack(pady=(2, 10))
 
