@@ -1,6 +1,6 @@
 """Generate a human-review labeling pack for the Fundidora M3 benchmark.
 
-Creates 16x16-grid RGB patch crops for each validated year plus a CSV template.
+Creates 8x8-grid RGB review cells for each validated year plus a CSV template.
 The labels are intended to be independent of NDVI/SCL so they can support the
 scientific label-efficiency benchmark.
 
@@ -22,7 +22,7 @@ from PIL import Image, ImageDraw
 
 RGB_DIR = Path("data/interim/fundidora")
 OUT_DIR = Path("data/labels/fundidora_m3")
-GRID = 16
+GRID = 8
 YEARS = ("2025", "2026")
 
 
@@ -50,7 +50,7 @@ def main() -> None:
             draw.line((x * 4, 0, x * 4, height * 4), fill="white", width=1)
         for y in y_edges:
             draw.line((0, y * 4, width * 4, y * 4), fill="white", width=1)
-        overview.save(OUT_DIR / f"fundidora_{year}_review_grid.png")
+        overview.save(OUT_DIR / f"fundidora_{year}_review_grid_8x8.png")
 
         for row in range(GRID):
             for col in range(GRID):
@@ -75,7 +75,7 @@ def main() -> None:
                     "notes": "",
                 })
 
-    csv_path = OUT_DIR / "fundidora_patch_labels.csv"
+    csv_path = OUT_DIR / "fundidora_patch_labels_8x8.csv"
     with csv_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(
             handle,
@@ -86,8 +86,8 @@ def main() -> None:
 
     instructions = OUT_DIR / "README.md"
     instructions.write_text(
-        "# Fundidora M3 human review pack\n\n"
-        "Review each patch using RGB only. Do not consult NDVI or SCL while labeling.\n\n"
+        "# Fundidora M3 human review pack — 8x8 scientific benchmark\n\n"
+        "Review each 8x8 benchmark cell using RGB only. Do not consult NDVI or SCL while labeling. Each review cell corresponds to a 2x2 group of I-JEPA patch tokens.\n\n"
         "Allowed labels: vegetation, non_vegetation, uncertain.\n\n"
         "Use uncertain when the patch is mixed, visually ambiguous, obscured, or the "
         "dominant class cannot be determined confidently. These labels describe visible "
