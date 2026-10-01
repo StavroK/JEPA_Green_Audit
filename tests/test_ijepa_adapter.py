@@ -23,3 +23,4 @@ def test_mean_pool_patch_tokens():
     )
     pooled = mean_pool_patch_tokens(tokens)
     np.testing.assert_allclose(pooled, [[2.0, 4.0], [4.0, 6.0]])
+\n\ndef test_normalize_checkpoint_state_dict_strips_ddp_prefix():\n    state = {"module.pos_embed": 1, "module.blocks.0.norm1.weight": 2}\n    normalized = normalize_checkpoint_state_dict(state)\n    assert set(normalized) == {"pos_embed", "blocks.0.norm1.weight"}\n    assert normalized["pos_embed"] == 1\n\n\ndef test_normalize_checkpoint_state_dict_preserves_plain_keys():\n    state = {"pos_embed": 1}\n    assert normalize_checkpoint_state_dict(state) == state\n
