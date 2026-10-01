@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -28,17 +29,22 @@ DEFAULT_OUTPUT = Path("outputs/fundidora_m3_smoke_benchmark.json")
 SEEDS = (7, 19, 42, 73, 101)
 
 
-def fit_predict(X_train, y_train, X_test):
+def fit_predict(X_train, y_train, X_test, use_pca=False):
     if np.unique(y_train).size < 2:
         raise ValueError("selected labeled training set contains only one class")
-    model = make_pipeline(
-        StandardScaler(),
+
+    steps = [StandardScaler()]
+    if use_pca:
+        n_components = max(1, min(32, X_train.shape[0] - 1, X_train.shape[1]))
+        steps.append(PCA(n_components=n_components, random_state=0))
+    steps.append(
         LogisticRegression(
             max_iter=5000,
             class_weight="balanced",
             random_state=0,
-        ),
+        )
     )
+    model = make_pipeline(*steps)
     model.fit(X_train, y_train)
     pred = model.predict(X_test).astype(bool)
     score = model.predict_proba(X_test)[:, 1]
@@ -60,18 +66,25 @@ def main() -> None:
     valid_fraction = data["valid_fraction"]
 
     representations = {
-        "ndvi": X_ndvi,
-        "ijepa": X_jepa,
-        "ijepa_plus_ndvi": np.concatenate([X_jepa, X_ndvi], axis=1),
+        "ndvi": (X_ndvi, False),
+        "ijepa": (X_jepa, False),
+        "ijepa_pca": (X_jepa, True),
+        "ijepa_plus_ndvi": (np.concatenate([X_jepa, X_ndvi], axis=1), False),
+        "ijepa_plus_ndvi_pca": (
+            np.concatenate([X_jepa, X_ndvi], axis=1),
+            True,
+        ),
     }
 
     grid_masks = geographic_holdout_masks((16, 16))
     block_grid = spatial_block_ids((16, 16), block_size=2)
 
     train_grid = grid_masks["train"]
+    val_grid = grid_masks["val"]
     test_grid = grid_masks["test"]
 
     sample_train = train_grid[rows, cols] & np.isfinite(X_ndvi[:, 0]) & (valid_fraction > 0)
+    sample_val = val_grid[rows, cols] & np.isfinite(X_ndvi[:, 0]) & (valid_fraction > 0)
     sample_test = test_grid[rows, cols] & np.isfinite(X_ndvi[:, 0]) & (valid_fraction > 0)
 
     payload = {
@@ -84,7 +97,7 @@ def main() -> None:
         "results": {},
     }
 
-    for name, X in representations.items():
+    for name, (X, use_pca) in representations.items():
         rows_out = []
         for fraction in LABEL_FRACTIONS:
             seed_metrics = []
@@ -104,7 +117,12 @@ def main() -> None:
                 test = sample_test & np.all(np.isfinite(X), axis=1)
 
                 try:
-                    pred, score = fit_predict(X[selected], y[selected], X[test])
+                    pred, score = fit_predict(
+                        X[selected],
+                        y[selected],
+                        X[test],
+                        use_pca=use_pca,
+                    )
                 except ValueError as exc:
                     skipped.append({"seed": seed, "reason": str(exc)})
                     continue
@@ -134,6 +152,8 @@ def main() -> None:
     payload["split_diagnostics"] = {
         "train_samples": int(sample_train.sum()),
         "train_positive_samples": int(y[sample_train].sum()),
+        "val_samples": int(sample_val.sum()),
+        "val_positive_samples": int(y[sample_val].sum()),
         "test_samples": int(sample_test.sum()),
         "test_positive_samples": int(y[sample_test].sum()),
     }
@@ -145,6 +165,7 @@ def main() -> None:
     print(
         "Split diagnostics: "
         f"train={diag['train_samples']} ({diag['train_positive_samples']} positive) | "
+        f"val={diag['val_samples']} ({diag['val_positive_samples']} positive) | "
         f"test={diag['test_samples']} ({diag['test_positive_samples']} positive)"
     )
     for name, results in payload["results"].items():
