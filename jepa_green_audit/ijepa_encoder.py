@@ -25,6 +25,7 @@ IJEPA_MODEL_NAME = "vit_huge"
 IJEPA_PATCH_SIZE = 14
 IJEPA_IMAGE_SIZE = 224
 IJEPA_EMBED_DIM = 1280
+IJEPA_PATCH_GRID_SIZE = IJEPA_IMAGE_SIZE // IJEPA_PATCH_SIZE
 IJEPA_CHECKPOINT_NAME = "IN1K-vit.h.14-300e.pth.tar"
 IJEPA_CHECKPOINT_URL = (
     "https://dl.fbaipublicfiles.com/ijepa/IN1K-vit.h.14-300e.pth.tar"
@@ -168,6 +169,34 @@ class FrozenIJEPAEncoder:
             embedding = patch_tokens.mean(dim=1)
         return embedding.detach().cpu().numpy()[0].astype(np.float32)
 
+    def encode_rgb_patch_grid(self, rgb: np.ndarray) -> np.ndarray:
+        """Return dense frozen I-JEPA patch features as [16, 16, 1280]."""
+        tensor = self.preprocess_rgb(rgb)
+        with self.torch.inference_mode():
+            patch_tokens = self.model(tensor)
+
+        if patch_tokens.ndim != 3 or patch_tokens.shape[0] != 1:
+            raise RuntimeError(
+                f"Unexpected I-JEPA output shape: {tuple(patch_tokens.shape)}"
+            )
+
+        expected_tokens = IJEPA_PATCH_GRID_SIZE * IJEPA_PATCH_GRID_SIZE
+        if patch_tokens.shape[1] != expected_tokens:
+            raise RuntimeError(
+                f"Expected {expected_tokens} patch tokens, got {patch_tokens.shape[1]}"
+            )
+        if patch_tokens.shape[2] != IJEPA_EMBED_DIM:
+            raise RuntimeError(
+                f"Expected embedding dim {IJEPA_EMBED_DIM}, got {patch_tokens.shape[2]}"
+            )
+
+        grid = patch_tokens[0].reshape(
+            IJEPA_PATCH_GRID_SIZE,
+            IJEPA_PATCH_GRID_SIZE,
+            IJEPA_EMBED_DIM,
+        )
+        return grid.detach().cpu().numpy().astype(np.float32)
+
     def metadata(self) -> dict[str, Any]:
         return {
             "family": "I-JEPA",
@@ -177,6 +206,7 @@ class FrozenIJEPAEncoder:
             "model": "ViT-H/14",
             "image_size": IJEPA_IMAGE_SIZE,
             "embedding_dim": IJEPA_EMBED_DIM,
+            "patch_grid": [IJEPA_PATCH_GRID_SIZE, IJEPA_PATCH_GRID_SIZE],
             "checkpoint": IJEPA_CHECKPOINT_NAME,
             "checkpoint_source": IJEPA_CHECKPOINT_URL,
             "frozen": True,
