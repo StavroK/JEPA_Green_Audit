@@ -118,7 +118,7 @@ class LabelingApp:
 
         right = tk.Frame(image_frame)
         right.grid(row=0, column=2, padx=8)
-        tk.Label(right, text="AOI location", font=("Segoe UI", 10, "bold")).pack()
+        tk.Label(right, text="AOI location (red box = current review cell)", font=("Segoe UI", 10, "bold")).pack()
         self.overview_label = tk.Label(right, bd=2, relief="sunken")
         self.overview_label.pack(pady=4)
 
@@ -236,15 +236,48 @@ class LabelingApp:
                 Image.Resampling.BICUBIC,
             )
 
-            # AOI overview with the target cell highlighted.
-            overview = src.copy()
-            draw = ImageDraw.Draw(overview)
-            line_width = max(1, round(max(width, height) / 120))
+            # AOI overview with an obvious red marker for the current review cell.
+            overview = src.convert("RGBA")
+            overlay = Image.new("RGBA", overview.size, (0, 0, 0, 0))
+            draw = ImageDraw.Draw(overlay)
+
+            line_width = max(2, round(max(width, height) / 90))
+            x1_box = max(x0 + 1, x1 - 1)
+            y1_box = max(y0 + 1, y1 - 1)
+
+            # Semi-transparent fill plus a thick red outline.
             draw.rectangle(
-                (x0, y0, max(x0 + 1, x1 - 1), max(y0 + 1, y1 - 1)),
-                outline="white",
+                (x0, y0, x1_box, y1_box),
+                fill=(255, 0, 0, 70),
+                outline=(255, 0, 0, 255),
                 width=line_width,
             )
+
+            # Center crosshair makes small cells easier to locate.
+            cx = (x0 + x1_box) // 2
+            cy = (y0 + y1_box) // 2
+            marker = max(3, line_width + 1)
+            draw.line(
+                (cx - marker, cy, cx + marker, cy),
+                fill=(255, 0, 0, 255),
+                width=max(2, line_width),
+            )
+            draw.line(
+                (cx, cy - marker, cx, cy + marker),
+                fill=(255, 0, 0, 255),
+                width=max(2, line_width),
+            )
+
+            # Add a compact TARGET label near the highlighted cell.
+            label_x = min(max(0, x1_box + 4), max(0, width - 58))
+            label_y = max(0, y0 - 14)
+            draw.rectangle(
+                (label_x - 2, label_y - 2, label_x + 54, label_y + 12),
+                fill=(255, 0, 0, 230),
+            )
+            draw.text((label_x, label_y), "TARGET", fill="white")
+
+            overview = Image.alpha_composite(overview, overlay).convert("RGB")
             overview.thumbnail(
                 (OVERVIEW_DISPLAY_SIZE, OVERVIEW_DISPLAY_SIZE),
                 Image.Resampling.BICUBIC,
