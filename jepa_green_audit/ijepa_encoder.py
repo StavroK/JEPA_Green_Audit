@@ -54,6 +54,16 @@ def mean_pool_patch_tokens(tokens: np.ndarray) -> np.ndarray:
     return arr.mean(axis=1)
 
 
+def normalize_checkpoint_state_dict(state: dict) -> dict:
+    """Normalize official DDP checkpoints for single-process inference."""
+    if not state:
+        raise ValueError("checkpoint encoder state_dict is empty")
+    keys = list(state.keys())
+    if all(key.startswith("module.") for key in keys):
+        return {key[len("module."):]: value for key, value in state.items()}
+    return state
+
+
 def verify_upstream_checkout(upstream_dir: str | Path) -> None:
     """Fail fast if the expected upstream model file is not present."""
     root = Path(upstream_dir)
@@ -111,7 +121,7 @@ class FrozenIJEPAEncoder:
         if "encoder" not in checkpoint:
             raise KeyError("Official I-JEPA checkpoint does not contain 'encoder'.")
 
-        state = checkpoint["encoder"]
+        state = normalize_checkpoint_state_dict(checkpoint["encoder"])
         msg = encoder.load_state_dict(state, strict=True)
         if msg.missing_keys or msg.unexpected_keys:
             raise RuntimeError(
