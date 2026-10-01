@@ -30,15 +30,27 @@ from jepa_green_audit.benchmark import (
     select_labeled_training_blocks,
     spatial_block_ids,
 )
-from scripts.run_m3_human_benchmark import (
-    DEFAULT_DATASET,
-    DEFAULT_LABELS,
-    REVIEW_GRID,
-    SEEDS,
-    aggregate_16_to_8,
-    fit_predict,
-    load_human_labels,
-)
+try:
+    from scripts.run_m3_human_benchmark import (
+        DEFAULT_DATASET,
+        DEFAULT_LABELS,
+        REVIEW_GRID,
+        SEEDS,
+        aggregate_16_to_8,
+        fit_predict,
+        load_human_labels,
+    )
+except ModuleNotFoundError:
+    # Support direct execution: python scripts/run_m3_geographic_cv.py
+    from run_m3_human_benchmark import (
+        DEFAULT_DATASET,
+        DEFAULT_LABELS,
+        REVIEW_GRID,
+        SEEDS,
+        aggregate_16_to_8,
+        fit_predict,
+        load_human_labels,
+    )
 
 DEFAULT_OUTPUT = Path("outputs/fundidora_m3_geographic_cv.json")
 FOLD_WIDTH = 2
