@@ -40,7 +40,9 @@ def fit_predict(X_train, y_train, X_test):
         ),
     )
     model.fit(X_train, y_train)
-    return model.predict(X_test).astype(bool)
+    pred = model.predict(X_test).astype(bool)
+    score = model.predict_proba(X_test)[:, 1]
+    return pred, score
 
 
 def main() -> None:
@@ -102,7 +104,7 @@ def main() -> None:
                 test = sample_test & np.all(np.isfinite(X), axis=1)
 
                 try:
-                    pred = fit_predict(X[selected], y[selected], X[test])
+                    pred, score = fit_predict(X[selected], y[selected], X[test])
                 except ValueError as exc:
                     skipped.append({"seed": seed, "reason": str(exc)})
                     continue
@@ -110,6 +112,11 @@ def main() -> None:
                 metrics = binary_segmentation_metrics(y[test], pred)
                 metrics["seed"] = seed
                 metrics["labeled_samples"] = int(selected.sum())
+                metrics["labeled_positive_samples"] = int(y[selected].sum())
+                metrics["test_samples"] = int(test.sum())
+                metrics["test_positive_samples"] = int(y[test].sum())
+                metrics["predicted_positive_samples"] = int(pred.sum())
+                metrics["mean_positive_probability"] = float(score.mean())
                 metrics["labeled_blocks"] = int(
                     np.unique(block_grid[rows[selected], cols[selected]]).size
                 )
@@ -124,14 +131,30 @@ def main() -> None:
             rows_out.append(aggregate)
         payload["results"][name] = rows_out
 
+    payload["split_diagnostics"] = {
+        "train_samples": int(sample_train.sum()),
+        "train_positive_samples": int(y[sample_train].sum()),
+        "test_samples": int(sample_test.sum()),
+        "test_positive_samples": int(y[sample_test].sum()),
+    }
+
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(f"Wrote {args.output}")
+    diag = payload["split_diagnostics"]
+    print(
+        "Split diagnostics: "
+        f"train={diag['train_samples']} ({diag['train_positive_samples']} positive) | "
+        f"test={diag['test_samples']} ({diag['test_positive_samples']} positive)"
+    )
     for name, results in payload["results"].items():
         full = results[0]
+        first_run = full["runs"][0] if full["runs"] else {}
         print(
             f"{name}: 100% labels | IoU={full.get('iou_mean', float('nan')):.3f} | "
-            f"F1={full.get('f1_dice_mean', float('nan')):.3f}"
+            f"F1={full.get('f1_dice_mean', float('nan')):.3f} | "
+            f"pred+={first_run.get('predicted_positive_samples', 'NA')} | "
+            f"test+={first_run.get('test_positive_samples', 'NA')}"
         )
 
 
