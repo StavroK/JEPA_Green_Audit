@@ -23,10 +23,10 @@ from tkinter import messagebox
 import numpy as np
 from PIL import Image, ImageDraw, ImageTk
 
-DEFAULT_CSV = Path("data/labels/fundidora_m3/fundidora_patch_labels.csv")
+DEFAULT_CSV = Path("data/labels/fundidora_m3/fundidora_patch_labels_8x8.csv")
 RGB_DIR = Path("data/interim/fundidora")
 ALLOWED_LABELS = {"vegetation", "non_vegetation", "uncertain"}
-GRID = 16
+GRID = 8
 TARGET_DISPLAY_SIZE = 280
 CONTEXT_DISPLAY_SIZE = 360
 OVERVIEW_DISPLAY_SIZE = 420
@@ -97,7 +97,7 @@ class LabelingApp:
         tk.Label(root, textvariable=self.title_var, font=("Segoe UI", 16, "bold")).pack(pady=(12, 4))
         tk.Label(
             root,
-            text="Label the dominant visible cover in the highlighted target cell using RGB only. Do not consult NDVI or SCL.",
+            text="Label the dominant visible cover in the highlighted 8x8 review cell using RGB only. Do not consult NDVI or SCL.",
             font=("Segoe UI", 10),
         ).pack()
 
