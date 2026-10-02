@@ -137,3 +137,50 @@ is a useful research-only fallback at 4.77 m with RGB + NIR. It requires user
 registration and acceptance of the NICFI non-commercial terms, and its archive
 currently covers 2015–2025. It is therefore not an unrestricted open-data
 replacement for the other two sources.
+
+
+## Verified Monterrey orthophoto evidence
+
+A published UNAM thesis cites INEGI 2007 orthophotos at 1:10,000 for the
+Monterrey sheets G14C26A1, G14C26A2, **G14C26A3, G14C26A4**, G14C26B1 and
+G14C26B2. This verifies that historical orthophoto products existed for both
+Fundidora and La Pastora sheet areas.
+
+The current INEGI web catalog search prominently surfaces the newer 1.5 m
+terrain/surface elevation products for these same keys, but a stable direct
+download URL for the 2007 RGB orthophotos has not yet been confirmed. Keep this
+distinction explicit.
+
+## Using the supplied 1.5 m INEGI surface model
+
+The user-supplied G14C26A3 ZIP contains
+`conjunto_de_datos/g14c26a3_ms.tif`. Its metadata identifies it as a
+**Modelo Digital de Elevación Tipo Superficie (MDS), 1.5 m**, generated from
+photogrammetric point clouds derived from high-resolution stereo satellite
+imagery. It represents terrain plus vegetation and anthropogenic objects.
+
+It is therefore useful as a structural/elevation feature but is **not RGB**.
+
+Ingest it directly from the ZIP:
+
+```bash
+python scripts/ingest_inegi_elevation.py \
+  --surface path/to/794551174265_t.zip \
+  --aoi config/aoi_fundidora.geojson \
+  --prefix fundidora
+```
+
+If the matching terrain model (MDT) is available, add `--terrain` to generate
+an approximate normalized surface model:
+
+```bash
+python scripts/ingest_inegi_elevation.py \
+  --surface path/to/MDS.zip \
+  --terrain path/to/MDT.zip \
+  --aoi config/aoi_fundidora.geojson \
+  --prefix fundidora
+```
+
+The resulting nDSM is `MDS - MDT` and can approximate above-ground object
+height where the two products are aligned and temporally compatible. Treat it
+as a structural feature, not a vegetation label.
