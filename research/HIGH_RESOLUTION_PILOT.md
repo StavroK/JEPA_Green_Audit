@@ -98,3 +98,42 @@ Recommended first pass: approximately 20–30 m ground cells, then sensitivity a
 - A historical 1 m result is evidence about spatial detail / representation,
   not current vegetation condition.
 - Visible-cover labels are not biological tree-health diagnoses.
+
+
+## Discovery paths
+
+Two free/open discovery paths are now tested independently:
+
+### A. INEGI orthophotos
+
+Run:
+
+```bash
+python scripts/discover_high_res_imagery.py --aoi config/aoi_la_pastora.geojson
+```
+
+The script first probes the historical INEGI orthophoto WMS endpoint. If the
+service is no longer reachable, use the INEGI digital map catalog manually and
+record the downloaded source file and metadata before ingestion.
+
+INEGI's catalog confirms that Nuevo León has public orthophoto collections,
+including 1 m color products from 2010 and 1.5 m historical orthophotos.
+Availability is sheet-specific.
+
+### B. OpenAerialMap
+
+The same command queries OpenAerialMap's public STAC catalog for imagery that
+intersects the AOI. OpenAerialMap is preferred when coverage exists because the
+imagery can be downloaded as open GeoTIFF data and OAM documents the Open
+Imagery Network collection as CC BY 4.0.
+
+If the result reports zero matches, do not substitute a commercial web basemap
+for model training. Use the next documented fallback instead.
+
+### C. Planet NICFI fallback
+
+If neither INEGI nor OpenAerialMap yields a practical RGB source, Planet NICFI
+is a useful research-only fallback at 4.77 m with RGB + NIR. It requires user
+registration and acceptance of the NICFI non-commercial terms, and its archive
+currently covers 2015–2025. It is therefore not an unrestricted open-data
+replacement for the other two sources.
