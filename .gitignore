@@ -20,3 +20,7 @@ vendor/
 outputs/*embedding*.json
 *.pth
 *.pth.tar
+
+
+# Large source archives downloaded from authoritative providers
+data/raw/inegi/
