@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "provider": "INEGI",
+  "products": [
+    {
+      "sheet": "G14C26A3",
+      "product": "Modelo Digital de Elevación Tipo Superficie (MDS), 1.5 m",
+      "filename": "794551174265_t.zip",
+      "source_url": "https://www.inegi.org.mx/contenidos/productos/prod_serv/contenidos/espanol/bvinegi/productos/geografia/imagen_cartografica/1_10_000/lidar/1_5m/Superficie/794551174265_t.zip",
+      "sha256": "9454677b2e99eb2bb8f1d492b626964231729300fe569786bf42c300e4115c62",
+      "usage": "Structural/elevation feature for Fundidora experiments; not RGB imagery",
+      "target_dir": "data/raw/inegi"
+    }
+  ]
+}
