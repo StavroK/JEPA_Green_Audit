@@ -20,6 +20,16 @@
       "verification_status": "sha256_pinned",
       "usage": "Bare-earth terrain model for Fundidora; pair with G14C26A3 MDS to derive nDSM",
       "target_dir": "data/raw/inegi"
+    },
+    {
+      "sheet": "G14C26A3",
+      "product": "Ortofoto digital RGB, escala 1:10 000, 1 m",
+      "acquisition_year": 2007,
+      "filename": "889463305477_b.zip",
+      "source_url": "https://www.inegi.org.mx/contenidos/productos/prod_serv/contenidos/espanol/bvinegi/productos/geografia/ortofoto_1_10/889463305477_b.zip",
+      "sha256": "d1d84b66c66fd5ef2d12fe0127fd73b1add74282f5e8d231e79d4b734ab38c92",
+      "usage": "Historical 1 m RGB orthophoto for Fundidora spatial-resolution/representation benchmark; not current vegetation truth",
+      "target_dir": "data/raw/inegi"
     }
   ]
 }
