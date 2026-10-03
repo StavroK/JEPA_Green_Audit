@@ -125,7 +125,7 @@ class LabelingApp:
         tk.Label(content, textvariable=self.title_var, font=("Segoe UI", 16, "bold")).pack(pady=(12, 4))
         tk.Label(
             content,
-            text="Label the dominant visible cover in the highlighted 8x8 review cell using RGB only. Do not consult NDVI or SCL.",
+            text="Label the dominant visible cover in the highlighted review cell using RGB only. Use only the source imagery for this labeling set.",
             font=("Segoe UI", 10),
         ).pack()
 
@@ -265,7 +265,12 @@ class LabelingApp:
         year = row["year"]
         grid_row = int(row["row"])
         grid_col = int(row["col"])
-        source_path = RGB_DIR / f"fundidora_{year}_rgb.png"
+        source_path_value = row.get("source_path", "").strip()
+        source_path = (
+            Path(source_path_value)
+            if source_path_value
+            else RGB_DIR / f"fundidora_{year}_rgb.png"
+        )
         if not source_path.exists():
             messagebox.showerror("Missing RGB source", f"Source not found:\n{source_path}")
             return
@@ -273,8 +278,10 @@ class LabelingApp:
         with Image.open(source_path) as src:
             src = src.convert("RGB")
             width, height = src.size
-            x_edges = np.linspace(0, width, GRID + 1, dtype=int)
-            y_edges = np.linspace(0, height, GRID + 1, dtype=int)
+            grid_rows = int(row.get("grid_rows", "") or GRID)
+            grid_cols = int(row.get("grid_cols", "") or GRID)
+            x_edges = np.linspace(0, width, grid_cols + 1, dtype=int)
+            y_edges = np.linspace(0, height, grid_rows + 1, dtype=int)
 
             x0, x1 = int(x_edges[grid_col]), int(x_edges[grid_col + 1])
             y0, y1 = int(y_edges[grid_row]), int(y_edges[grid_row + 1])
@@ -288,9 +295,9 @@ class LabelingApp:
             # Context: roughly a 5x5-cell neighborhood around the target.
             radius = 2
             c0 = max(0, grid_col - radius)
-            c1 = min(GRID, grid_col + radius + 1)
+            c1 = min(grid_cols, grid_col + radius + 1)
             r0 = max(0, grid_row - radius)
-            r1 = min(GRID, grid_row + radius + 1)
+            r1 = min(grid_rows, grid_row + radius + 1)
             context = src.crop(
                 (
                     int(x_edges[c0]),
