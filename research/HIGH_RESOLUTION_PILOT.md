@@ -216,3 +216,24 @@ as current vegetation truth.
 This isolates spatial resolution while holding acquisition date, geography, and
 labels constant. It is therefore stronger evidence about resolution sensitivity
 than comparing 2007 RGB directly against 2025/2026 Sentinel imagery.
+
+
+## Refined human-review geography
+
+Visual inspection of the initial 16x9 review grid showed that each cell still
+contained multiple roofs, roads, vegetation patches and shadows. That would
+reintroduce mixed-cell ambiguity despite the 1 m source imagery.
+
+The controlled 2007 experiment therefore uses:
+
+- underlying geographic grid: **64 x 36** (2,304 cells)
+- manual review subset: **384 cells**
+- selection: deterministic spatially distributed sampling (one of every six
+  raster-order cells; the selected column shifts by row because 64 is not
+  divisible by 6)
+- labels: produced once from the native 1 m 2007 RGB
+- evaluation: reuse those exact geographic cells at 1 m, 2 m, 5 m and 10 m
+
+This reduces target-cell size to roughly tens of meters, preserving canopy,
+building and pavement structure while keeping manual labeling practical. The
+unsampled cells are not pseudo-labeled.
