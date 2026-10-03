@@ -74,7 +74,8 @@ def main() -> None:
     for product in products:
         filename = product["filename"]
         destination = Path(product.get("target_dir", "data/raw/inegi")) / filename
-        expected = product["sha256"].lower()
+        expected_raw = product.get("sha256")
+        expected = expected_raw.lower() if expected_raw else None
         url = product["source_url"]
 
         print(f"{product['sheet']} — {product['product']}")
@@ -82,8 +83,12 @@ def main() -> None:
 
         if destination.exists() and not args.force:
             actual = sha256_file(destination)
-            if actual == expected:
+            if expected and actual == expected:
                 print("  already present; SHA-256 verified")
+                continue
+            if not expected:
+                print(f"  already present; SHA-256 computed: {actual}")
+                print("  manifest checksum is pending verification")
                 continue
             print("  existing file checksum mismatch; redownloading")
 
@@ -91,13 +96,16 @@ def main() -> None:
         download_file(url, destination)
 
         actual = sha256_file(destination)
-        if actual != expected:
-            destination.unlink(missing_ok=True)
-            raise RuntimeError(
-                f"SHA-256 mismatch for {filename}: expected {expected}, got {actual}"
-            )
-
-        print(f"  SHA-256 verified: {actual}")
+        if expected:
+            if actual != expected:
+                destination.unlink(missing_ok=True)
+                raise RuntimeError(
+                    f"SHA-256 mismatch for {filename}: expected {expected}, got {actual}"
+                )
+            print(f"  SHA-256 verified: {actual}")
+        else:
+            print(f"  SHA-256 computed: {actual}")
+            print("  NOTE: add this checksum to the manifest to pin the binary exactly.")
 
     print("All INEGI products are ready.")
 
