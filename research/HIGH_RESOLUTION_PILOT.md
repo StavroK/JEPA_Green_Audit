@@ -184,3 +184,35 @@ python scripts/ingest_inegi_elevation.py \
 The resulting nDSM is `MDS - MDT` and can approximate above-ground object
 height where the two products are aligned and temporally compatible. Treat it
 as a structural feature, not a vegetation label.
+
+
+## Controlled 2007 spatial-resolution benchmark
+
+A verified INEGI RGB orthophoto is now available for **G14C26A3 / Fundidora**:
+
+- acquisition: 2007
+- native GSD: 1 m
+- format: 3-band uint8 BIL
+- dimensions before AOI crop: 5697 × 7031
+- projection metadata: UTM zone 14, ITRF92 / GRS80
+- source archive: UPC 889463305477
+
+The archive's AUX sidecar incorrectly advertises one band. The HDR and raw file
+size confirm 3 bands, so the ingestion script intentionally excludes AUX and
+uses BIL/HDR/BLW/PRJ.
+
+This dataset is used in a **same-date resolution sensitivity experiment**, not
+as current vegetation truth.
+
+### Controlled experiment
+
+1. Crop the 2007 1 m RGB orthophoto to the Fundidora AOI.
+2. Create 2 m, 5 m, and 10 m versions from the same image using area averaging.
+3. Create human visible-cover labels from the **2007 1 m RGB only**.
+4. Keep those same geographic labels for all four resolutions.
+5. Compare supervised ImageNet, I-JEPA, and non-JEPA SSL representations with
+   geographic holdouts.
+
+This isolates spatial resolution while holding acquisition date, geography, and
+labels constant. It is therefore stronger evidence about resolution sensitivity
+than comparing 2007 RGB directly against 2025/2026 Sentinel imagery.
