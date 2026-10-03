@@ -16,8 +16,8 @@
       "product": "Modelo Digital de Elevación Tipo Terreno (MDT), 1.5 m",
       "filename": "794551182963_t.zip",
       "source_url": "https://www.inegi.org.mx/contenidos/productos/prod_serv/contenidos/espanol/bvinegi/productos/geografia/imagen_cartografica/1_10_000/lidar/1_5m/terreno/794551182963_t.zip",
-      "sha256": null,
-      "verification_status": "pending_local_checksum",
+      "sha256": "8b9dba9283199a44b955524de9ac3bbbec6c3124063fda41fe1c617d0a2724b1",
+      "verification_status": "sha256_pinned",
       "usage": "Bare-earth terrain model for Fundidora; pair with G14C26A3 MDS to derive nDSM",
       "target_dir": "data/raw/inegi"
     }
