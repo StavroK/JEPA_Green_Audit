@@ -49,3 +49,22 @@ For every scene preserve:
 ## Local pilot
 
 A future Monterrey pilot should define a small set of representative AOIs rather than attempting the entire metropolitan area immediately. Include parks, dense urban blocks, industrial areas, and mixed vegetation conditions.
+
+
+## Reproducible INEGI source downloads
+
+Large INEGI ZIP archives are intentionally not committed to Git history.
+Instead, exact URLs and SHA-256 checksums are stored in:
+
+`data/sources/inegi_products.json`
+
+Download and verify them with:
+
+```bash
+python scripts/download_inegi_products.py
+```
+
+Files are written to `data/raw/inegi/`, which is ignored by Git.
+
+This keeps clones small while preserving exact source provenance and
+reproducibility.
