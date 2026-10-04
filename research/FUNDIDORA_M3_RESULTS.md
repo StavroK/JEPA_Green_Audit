@@ -157,15 +157,59 @@ The evidence supports the following conclusions:
 - The result is site-specific and should be replicated on a second, denser-green
   site before making broader claims.
 
-## Remaining acceptance gap
+## Complete Sentinel label-efficiency comparison
 
-Issue #3 originally asks for supervised, non-JEPA self-supervised, JEPA,
-NDVI-only, and JEPA+NDVI comparisons across the label-efficiency fractions.
+The original M3 acceptance gap is now closed. Frozen supervised ResNet18 and
+non-JEPA SSL DINOv2 were evaluated in the same 2025/2026 Sentinel geographic
+label-efficiency protocol used for NDVI and I-JEPA.
 
-The current repository now contains supervised and non-JEPA SSL controls in the
-controlled 2007 RGB benchmark, but those two controls have **not yet been run
-through the original 2025/2026 Sentinel label-fraction experiment**.
+Mean IoU / mean F1 across completed geographic-fold/seed runs:
 
-For strict closure against the original issue wording, that is the remaining
-gap. Multi-site replication belongs in a separate follow-on milestone rather
-than expanding M3 indefinitely.
+| Labels | NDVI | ResNet18 | DINOv2 | I-JEPA | I-JEPA + NDVI |
+|---:|---:|---:|---:|---:|---:|
+| 100% | **0.682 / 0.808** | 0.673 / 0.802 | 0.651 / 0.784 | 0.600 / 0.716 | 0.600 / 0.716 |
+| 50% | 0.643 / 0.775 | **0.664 / 0.793** | **0.666 / 0.793** | 0.545 / 0.686 | 0.547 / 0.688 |
+| 25% | 0.614 / 0.751 | 0.642 / 0.767 | **0.654 / 0.780** | 0.533 / 0.654 | 0.535 / 0.657 |
+| 10% | **0.639 / 0.770** | 0.601 / 0.733 | 0.620 / 0.745 | 0.488 / 0.612 | 0.488 / 0.611 |
+| 5% | 0.501 / 0.629 | 0.387 / 0.525 | 0.529 / 0.656 | **0.559 / 0.661** | **0.559 / 0.661** |
+| 1% | 0.501 / 0.629 | 0.387 / 0.525 | 0.529 / 0.656 | **0.559 / 0.661** | **0.559 / 0.661** |
+
+Run counts:
+- 100% and 50%: 20 completed runs per model
+- 25% and 10%: 17 completed runs per model
+- 5% and 1%: 8 completed runs per model
+
+Trivial geographic reference:
+- always vegetation / train-majority: IoU 0.609, F1 0.725
+
+Interpretation:
+- At 100%, NDVI is best overall, with frozen ResNet18 very close and DINOv2 third.
+- At 50% and 25%, frozen ResNet18/DINOv2 are strongest, while I-JEPA remains weaker.
+- At 10%, NDVI is again strongest.
+- At 5% and 1%, I-JEPA is numerically highest, but these regimes collapse to the
+  same minimum-block sampling condition with only 8 completed runs and remain
+  below the trivial baseline F1 of 0.725. They are therefore not evidence of
+  superior label efficiency.
+- I-JEPA + NDVI does not materially improve on I-JEPA alone in the Sentinel
+  benchmark.
+- These results reinforce the distinction between the two settings:
+  frozen I-JEPA transfers strongly on the controlled 2007 high-resolution RGB
+  benchmark, but on coarse/mixed Sentinel RGB the simpler NDVI and other RGB
+  encoders are generally stronger in the practically informative label regimes.
+
+## M3 closure status
+
+All requested comparison families are now represented:
+
+- supervised baseline: ResNet18
+- non-JEPA self-supervised baseline: DINOv2
+- JEPA: I-JEPA
+- NDVI-only
+- JEPA + NDVI
+- label fractions: 100%, 50%, 25%, 10%, 5%, 1%
+- geographic holdouts
+- IoU/F1 reporting
+- uncertainty/limitations documented
+
+M3 is therefore complete. Multi-site replication continues separately in M3b.
+
