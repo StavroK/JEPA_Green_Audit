@@ -21,13 +21,16 @@ def main() -> None:
     payload = json.loads(args.input.read_text(encoding="utf-8"))
     aggregate = payload["aggregate_results"]
 
-    names = [
+    preferred_names = [
         "ndvi",
+        "resnet18",
+        "dinov2",
         "ijepa",
-        "ijepa_pca",
         "ijepa_plus_ndvi",
+        "ijepa_pca",
         "ijepa_plus_ndvi_pca",
     ]
+    names = [name for name in preferred_names if name in aggregate]
 
     print("M3 geographic CV label-efficiency summary")
     print("metric: mean IoU / mean F1 across completed folds and seeds")
