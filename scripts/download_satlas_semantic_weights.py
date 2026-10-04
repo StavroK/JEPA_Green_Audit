@@ -12,6 +12,7 @@ URL = (
     "sentinel2_swinb_si_rgb.pth?download=true"
 )
 DEFAULT_OUTPUT = Path("models/satlas/sentinel2_swinb_si_rgb.pth")
+EXPECTED_SHA256 = "94c075a155fc489947dc091305586675649c99c7d8567fe2195792b58875511b"
 
 
 def sha256(path: Path) -> str:
@@ -34,11 +35,13 @@ def main() -> None:
     else:
         print(f"Using existing {args.output}")
 
-    print(f"SHA256 {sha256(args.output)}")
-    print(
-        "Copy this SHA256 into the M3b issue/results before treating the "
-        "checkpoint as fully pinned."
-    )
+    actual = sha256(args.output)
+    print(f"SHA256 {actual}")
+    if actual != EXPECTED_SHA256:
+        raise RuntimeError(
+            f"Checkpoint checksum mismatch: expected {EXPECTED_SHA256}, got {actual}"
+        )
+    print("Checkpoint checksum verified.")
 
 
 if __name__ == "__main__":
