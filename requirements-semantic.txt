@@ -1,0 +1,9 @@
+# Optional dependencies for the Satlas semantic branch.
+# Install into the existing .venv-jepa:
+#   pip install -r requirements-semantic.txt
+scipy
+scikit-image
+shapely
+tqdm
+eyediagram
+vit-pytorch
