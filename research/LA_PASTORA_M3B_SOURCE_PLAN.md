@@ -14,12 +14,22 @@ Configured file:
 
 `config/aoi_la_pastora.geojson`
 
+The first candidate AOI was visually reviewed using the 2025/2026 Sentinel RGB
+QC montage and found to include too much stadium, residential fabric, road
+infrastructure, and bare/parking area for a true dense-green replication.
+
+The original candidate is preserved as:
+
+`config/aoi_la_pastora_candidate_v1.geojson`
+
+The active AOI was refined to the central vegetated corridor.
+
 WGS84 bbox:
 
-- west: -100.2545
-- south: 25.6615
-- east: -100.2405
-- north: 25.6745
+- west: -100.2516
+- south: 25.6651
+- east: -100.2461
+- north: 25.6714
 
 ## INEGI sheet validation
 
@@ -33,7 +43,7 @@ INEGI catalog product UPC **794551182970** identifies sheet **G14C26A4**:
 - west/east: 100°16'43.52"W to 100°13'16.63"W
 - south/north: 25°37'27.32"N to 25°41'17.71"N
 
-The configured La Pastora AOI lies fully inside this extent.
+The refined La Pastora AOI lies fully inside this extent.
 
 Run:
 
@@ -81,6 +91,17 @@ Once both MDS and MDT are verified:
 2. download reproducibly with `scripts/download_inegi_products.py`;
 3. derive nDSM using the existing elevation ingestion workflow;
 4. aggregate structural features to the La Pastora review grid.
+
+## QC decision
+
+The first 145 × 142 Sentinel RGB QC pair showed that the original AOI was still
+too heterogeneous to serve as the intended dense-green contrast to Fundidora.
+Manual labeling was intentionally deferred.
+
+The refined green-core AOI should now be reprocessed through Sentinel scene
+selection and RGB QC. If the new montage is visibly vegetation-dominant while
+retaining meaningful urban edges, use a 16 × 16 review grid as the starting
+candidate. The final grid decision remains gated on the refined montage.
 
 ## Gate to labeling
 
