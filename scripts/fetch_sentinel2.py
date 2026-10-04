@@ -36,7 +36,19 @@ DEFAULT_WINDOWS = {
 
 
 def read_aoi(path: Path) -> tuple[dict, list[float]]:
-    feature = json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("type") == "FeatureCollection":
+        features = payload.get("features") or []
+        if len(features) != 1:
+            raise ValueError(
+                f"Expected exactly one AOI feature in {path}; found {len(features)}"
+            )
+        feature = features[0]
+    elif payload.get("type") == "Feature":
+        feature = payload
+    else:
+        raise ValueError("AOI must be a GeoJSON Feature or single-feature FeatureCollection")
+
     coords = feature["geometry"]["coordinates"][0]
     xs = [p[0] for p in coords]
     ys = [p[1] for p in coords]
@@ -150,8 +162,10 @@ def main():
             "access_pattern": "public STAC metadata + COG AOI window reads",
         },
         "aoi": {
-            "id": feature["properties"]["id"],
-            "name": feature["properties"]["name"],
+            "id": feature.get("properties", {}).get(
+                "id", feature.get("properties", {}).get("name", args.aoi.stem)
+            ),
+            "name": feature.get("properties", {}).get("name", args.aoi.stem),
             "bbox_wgs84": bbox,
             "geometry": feature["geometry"],
         },
