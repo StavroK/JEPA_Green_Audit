@@ -5,19 +5,39 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "La Pastora dense-green pilot AOI",
-        "purpose": "Approximate research AOI for M3 spatial-resolution sensitivity; not an official park or protected-area boundary",
-        "source_note": "Centered on Nuevo Parque Ecologico La Pastora / Parque La Pastora, Guadalupe, Nuevo Leon"
+        "id": "la_pastora_green_core_v2",
+        "name": "La Pastora green-core pilot AOI",
+        "purpose": "Refined dense-green research AOI for M3b replication; excludes much of the stadium, dense residential fabric, and southern interchange visible in Sentinel QC",
+        "source_note": "Derived from visual QC of 2025/2026 Sentinel RGB; approximate research polygon, not an official park or protected-area boundary",
+        "refinement_from": "config/aoi_la_pastora_candidate_v1.geojson",
+        "refinement_rationale": "Focus the benchmark on the central vegetated corridor so M3b contrasts a denser-green site against mixed-urban Fundidora"
       },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[
-          [-100.2545, 25.6615],
-          [-100.2405, 25.6615],
-          [-100.2405, 25.6745],
-          [-100.2545, 25.6745],
-          [-100.2545, 25.6615]
-        ]]
+        "coordinates": [
+          [
+            [
+              -100.2516,
+              25.6651
+            ],
+            [
+              -100.2461,
+              25.6651
+            ],
+            [
+              -100.2461,
+              25.6714
+            ],
+            [
+              -100.2516,
+              25.6714
+            ],
+            [
+              -100.2516,
+              25.6651
+            ]
+          ]
+        ]
       }
     }
   ]
