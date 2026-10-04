@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "name": "la_pastora_dense_green_pilot",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "La Pastora dense-green pilot AOI",
+        "purpose": "Approximate research AOI for M3 spatial-resolution sensitivity; not an official park or protected-area boundary",
+        "source_note": "Centered on Nuevo Parque Ecologico La Pastora / Parque La Pastora, Guadalupe, Nuevo Leon"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-100.2545, 25.6615],
+          [-100.2405, 25.6615],
+          [-100.2405, 25.6745],
+          [-100.2545, 25.6745],
+          [-100.2545, 25.6615]
+        ]]
+      }
+    }
+  ]
+}
