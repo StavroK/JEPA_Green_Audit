@@ -100,3 +100,25 @@ M3b semantic integration is complete when:
 - predictions are compared with independent human labels;
 - limitations of 10 m tree-canopy inference are explicit;
 - Fundidora and La Pastora are reported separately before any pooled result.
+
+
+## Satlas validation gate
+
+The first two local La Pastora inference runs produced an implausibly high
+`developed` fraction (~89–91%) and near-zero `tree_canopy`, even after
+replacing black padding with a real 512×512 Sentinel context tile.
+
+Therefore Satlas semantic outputs are currently **unvalidated** and must not be
+used as measurements, labels, or AOI-selection truth.
+
+Before deciding whether to retain Satlas:
+
+1. inspect TCI vs semantic maps side by side;
+2. inspect per-pixel maximum probability and normalized entropy;
+3. verify whether the model is confidently wrong or simply uncertain;
+4. verify L1C-vs-L2A TCI domain compatibility;
+5. if domain mismatch remains material, replace or supplement Satlas with a
+   Sentinel-native semantic product/baseline rather than forcing this model.
+
+NDVI and human RGB labels remain the trusted benchmark references for the
+current experiment.
