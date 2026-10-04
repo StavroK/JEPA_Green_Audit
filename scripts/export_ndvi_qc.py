@@ -8,16 +8,31 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+from pystac_client import Client
 
 from jepa_green_audit.spectral import ndvi
-from jepa_green_audit.sentinel2 import valid_pixel_mask
+from jepa_green_audit.sentinel2 import EARTH_SEARCH, COLLECTION, load_aoi, valid_pixel_mask
 
 try:
-    from scripts.fetch_sentinel2 import fetch_item, read_aoi
+    from scripts.fetch_sentinel2 import read_aoi
 except ModuleNotFoundError as exc:
     if exc.name != "scripts":
         raise
-    from fetch_sentinel2 import fetch_item, read_aoi
+    from fetch_sentinel2 import read_aoi
+
+
+def fetch_item(item_id: str):
+    catalog = Client.open(EARTH_SEARCH)
+    items = list(
+        catalog.search(
+            collections=[COLLECTION],
+            ids=[item_id],
+            max_items=1,
+        ).items()
+    )
+    if not items:
+        raise RuntimeError(f"Sentinel-2 item not found: {item_id}")
+    return items[0]
 
 
 def main() -> None:
