@@ -26,10 +26,12 @@ from jepa_green_audit.sentinel2 import (
     _read_band_to_grid,
 )
 
-AOI_PATH = Path("config/aoi_fundidora.geojson")
-OUT_DIR = Path("data/interim/fundidora")
+DEFAULT_AOI_PATH = Path("config/aoi_fundidora.geojson")
+DEFAULT_OUT_DIR = Path("data/interim/fundidora")
+DEFAULT_BASELINE = Path("outputs/fundidora_sentinel2_baseline.json")
+DEFAULT_SITE = "fundidora"
 
-SCENES = {
+FUNDIDORA_SCENES = {
     "2025": "S2A_14RLP_20250828_0_L2A",
     "2026": "S2B_14RLP_20260915_0_L2A",
 }
@@ -42,11 +44,35 @@ ASSETS = {
 
 
 def read_aoi_bbox(path: Path) -> tuple[dict, list[float]]:
-    feature = json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("type") == "FeatureCollection":
+        features = payload.get("features") or []
+        if len(features) != 1:
+            raise ValueError(f"Expected one AOI feature in {path}; found {len(features)}")
+        feature = features[0]
+    elif payload.get("type") == "Feature":
+        feature = payload
+    else:
+        raise ValueError("AOI must be a GeoJSON Feature or single-feature FeatureCollection")
+
     coords = feature["geometry"]["coordinates"][0]
     xs = [p[0] for p in coords]
     ys = [p[1] for p in coords]
     return feature, [min(xs), min(ys), max(xs), max(ys)]
+
+
+def scenes_from_baseline(path: Path) -> dict[str, str]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    observations = payload.get("observations", {})
+    scenes = {}
+    for year in ("2025", "2026"):
+        try:
+            scenes[year] = observations[year]["scene"]["item_id"]
+        except KeyError as exc:
+            raise ValueError(
+                f"{path} does not contain observations.{year}.scene.item_id"
+            ) from exc
+    return scenes
 
 
 def fetch_item(item_id: str):
@@ -147,24 +173,43 @@ def shared_channel_stretch(
 
 
 def main() -> None:
-    feature, bbox = read_aoi_bbox(AOI_PATH)
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--aoi", type=Path, default=DEFAULT_AOI_PATH)
+    parser.add_argument("--baseline-json", type=Path, default=DEFAULT_BASELINE)
+    parser.add_argument("--site", default=DEFAULT_SITE)
+    parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
+    args = parser.parse_args()
+
+    feature, bbox = read_aoi_bbox(args.aoi)
+    scenes = (
+        scenes_from_baseline(args.baseline_json)
+        if args.baseline_json.exists()
+        else FUNDIDORA_SCENES
+    )
+
     raw = {}
     provenance = {
-        "schema_version": "1.0",
-        "purpose": "Aligned RGB inputs for frozen I-JEPA comparison",
+        "schema_version": "1.1",
+        "purpose": "Aligned RGB inputs for frozen representation comparison",
         "source": {
             "catalog": EARTH_SEARCH,
             "collection": COLLECTION,
+            "baseline_json": str(args.baseline_json) if args.baseline_json.exists() else None,
         },
         "aoi": {
-            "id": feature["properties"]["id"],
-            "name": feature["properties"]["name"],
+            "id": feature.get("properties", {}).get(
+                "id", feature.get("properties", {}).get("name", args.aoi.stem)
+            ),
+            "name": feature.get("properties", {}).get("name", args.aoi.stem),
             "bbox_wgs84": bbox,
         },
+        "site": args.site,
         "scenes": {},
     }
 
-    for year, item_id in SCENES.items():
+    for year, item_id in scenes.items():
         item = fetch_item(item_id)
         rgb, meta = load_rgb(item, bbox)
         raw[year] = rgb
@@ -173,18 +218,18 @@ def main() -> None:
     rgb8, scaling = shared_channel_stretch(raw)
     provenance["display_scaling"] = scaling
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    args.out_dir.mkdir(parents=True, exist_ok=True)
 
     for year, image in rgb8.items():
-        path = OUT_DIR / f"fundidora_{year}_rgb.png"
+        path = args.out_dir / f"{args.site}_{year}_rgb.png"
         Image.fromarray(image, mode="RGB").save(path)
         provenance["scenes"][year]["png"] = str(path)
 
-    prov_path = OUT_DIR / "rgb_tiles_provenance.json"
+    prov_path = args.out_dir / "rgb_tiles_provenance.json"
     prov_path.write_text(json.dumps(provenance, indent=2), encoding="utf-8")
 
-    print(f"Wrote {OUT_DIR / 'fundidora_2025_rgb.png'}")
-    print(f"Wrote {OUT_DIR / 'fundidora_2026_rgb.png'}")
+    print(f"Wrote {args.out_dir / f'{args.site}_2025_rgb.png'}")
+    print(f"Wrote {args.out_dir / f'{args.site}_2026_rgb.png'}")
     print(f"Wrote {prov_path}")
     print("Source grid shape:", provenance["scenes"]["2025"]["shape"])
     print("Shared scaling:", scaling)
