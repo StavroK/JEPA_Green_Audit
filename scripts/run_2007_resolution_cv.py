@@ -1,7 +1,8 @@
 """Evaluate the controlled 2007 resolution benchmark with geographic CV.
 
-Compares frozen supervised ImageNet ResNet18 and frozen I-JEPA at 1/2/5/10 m
-using the exact same 2007 labels and geographic cells.
+Compares frozen supervised ImageNet ResNet18, frozen I-JEPA, and frozen DINOv2
+at 1/2/5/10 m using the exact same 2007 labels and geographic cells. Includes
+trivial references and per-fold diagnostics.
 """
 
 from __future__ import annotations
@@ -47,6 +48,18 @@ def summarize(runs: list[dict]) -> dict:
     return result
 
 
+def trivial_predictions(name: str, y_train: np.ndarray, n_test: int) -> np.ndarray:
+    if name == "always_vegetation":
+        value = True
+    elif name == "always_non_vegetation":
+        value = False
+    elif name == "train_majority":
+        value = bool(np.mean(y_train) >= 0.5)
+    else:
+        raise ValueError(name)
+    return np.full(n_test, value, dtype=bool)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
@@ -68,15 +81,37 @@ def main() -> None:
         "non_vegetation": int((~y).sum()),
         "folds": 4,
         "results": {},
+        "trivial_baselines": {},
     }
 
-    for family in ("resnet18", "ijepa"):
+    folds = geographic_column_folds(cols, grid_cols)
+    for baseline in ("always_vegetation", "always_non_vegetation", "train_majority"):
+        runs = []
+        for fold_index, (train, test, col_range) in enumerate(folds):
+            pred = trivial_predictions(baseline, y[train], int(test.sum()))
+            metrics = binary_segmentation_metrics(y[test], pred)
+            metrics.update({
+                "fold": fold_index,
+                "test_columns": list(col_range),
+                "test_samples": int(test.sum()),
+                "test_vegetation": int(y[test].sum()),
+            })
+            runs.append(metrics)
+        summary = {"runs": runs}
+        summary.update(summarize(runs))
+        payload["trivial_baselines"][baseline] = summary
+
+    families = ["resnet18", "ijepa"]
+    if f"X_dinov2_{RESOLUTIONS[0]}m" in data.files:
+        families.append("dinov2")
+
+    for family in families:
         payload["results"][family] = {}
         for resolution in RESOLUTIONS:
             X = data[f"X_{family}_{resolution}m"].astype(np.float32)
             runs = []
             for fold_index, (train, test, col_range) in enumerate(
-                geographic_column_folds(cols, grid_cols)
+                folds
             ):
                 finite = np.all(np.isfinite(X), axis=1)
                 train_mask = train & finite
@@ -111,6 +146,13 @@ def main() -> None:
     args.output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     print(f"Wrote {args.output}")
+    print("Trivial baselines:")
+    for name, result in payload["trivial_baselines"].items():
+        print(
+            f"  {name}: IoU={result['iou_mean']:.3f} ±{result['iou_std']:.3f} | "
+            f"F1={result['f1_dice_mean']:.3f} ±{result['f1_dice_std']:.3f}"
+        )
+
     for family, by_resolution in payload["results"].items():
         print(f"{family}:")
         for resolution in RESOLUTIONS:
@@ -120,6 +162,11 @@ def main() -> None:
                 f"IoU={result['iou_mean']:.3f} ±{result['iou_std']:.3f} | "
                 f"F1={result['f1_dice_mean']:.3f} ±{result['f1_dice_std']:.3f}"
             )
+            fold_text = " | ".join(
+                f"fold{run['fold']}:F1={run['f1_dice']:.3f},veg={run['test_vegetation']}/{run['test_samples']}"
+                for run in result["runs"]
+            )
+            print(f"       {fold_text}")
 
 
 if __name__ == "__main__":
