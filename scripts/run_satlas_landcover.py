@@ -243,6 +243,19 @@ def composition(mask: np.ndarray, names: list[str]) -> dict[str, float]:
     }
 
 
+def confidence_diagnostics(probs: torch.Tensor) -> dict[str, float]:
+    """Summarize predictive confidence for a CxHxW probability tensor."""
+    max_prob = probs.max(dim=0).values
+    entropy = -(probs.clamp_min(1e-8) * probs.clamp_min(1e-8).log()).sum(dim=0)
+    entropy = entropy / np.log(probs.shape[0])
+    return {
+        "mean_max_probability": round(float(max_prob.mean().item()), 4),
+        "median_max_probability": round(float(max_prob.median().item()), 4),
+        "fraction_max_probability_ge_0_5": round(float((max_prob >= 0.5).float().mean().item()), 4),
+        "mean_normalized_entropy": round(float(entropy.mean().item()), 4),
+    }
+
+
 def save_project_png(mask: np.ndarray, output: Path) -> None:
     names = list(PROJECT_GROUPS)
     rgb = np.zeros((*mask.shape, 3), dtype=np.uint8)
@@ -317,6 +330,7 @@ def main() -> None:
             native_context = probs.argmax(dim=0).cpu().numpy().astype(np.uint8)
 
         rows, cols = aoi_slices
+        aoi_probs = probs[:, rows, cols].cpu()
         native = native_context[rows, cols]
         native_names = np.asarray(LAND_COVER_CLASSES, dtype=object)[native]
         project = project_map(native_names)
@@ -329,6 +343,10 @@ def main() -> None:
         semantic_path = args.output_dir / f"{args.site}_{year}_semantic.png"
         save_project_png(project, semantic_path)
         np.save(args.output_dir / f"{args.site}_{year}_landcover_native.npy", native)
+        np.save(
+            args.output_dir / f"{args.site}_{year}_landcover_probabilities.npy",
+            aoi_probs.numpy().astype(np.float32),
+        )
 
         summary["years"][year] = {
             "item_id": item_id,
@@ -337,11 +355,13 @@ def main() -> None:
             "context_png": str(context_path),
             "native_composition_pct": composition(native, LAND_COVER_CLASSES),
             "project_composition_pct": composition(project, project_names),
+            "confidence": confidence_diagnostics(aoi_probs),
             "tci_png": str(tci_path),
             "semantic_png": str(semantic_path),
         }
 
         print(f"{year}: {summary['years'][year]['project_composition_pct']}")
+        print(f"{year} confidence: {summary['years'][year]['confidence']}")
 
     out_json = args.output_dir / f"{args.site}_satlas_landcover.json"
     out_json.write_text(json.dumps(summary, indent=2), encoding="utf-8")
