@@ -122,3 +122,50 @@ Before deciding whether to retain Satlas:
 
 NDVI and human RGB labels remain the trusted benchmark references for the
 current experiment.
+
+
+## Model decision after La Pastora QC
+
+The La Pastora Satlas QC shows that the model is not suitable as the primary
+semantic baseline for this project in its current configuration.
+
+Observed behavior:
+- 2025: ~89.3% developed, ~10.5% other vegetation, ~0.17% tree;
+- 2026: ~90.7% developed, ~8.8% other vegetation, 0% tree;
+- mean maximum class probability ~0.65-0.70;
+- ~65-78% of AOI pixels have top-class probability >= 0.5.
+
+The model is therefore not merely uncertain: it is moderately confident while
+visually over-predicting developed land across a vegetation-rich scene.
+
+### Revised semantic strategy
+
+**Primary contemporary semantic baseline:** Google / WRI **Dynamic World V1**.
+
+Reasons:
+- 10 m near-real-time land-cover product derived from Sentinel-2 L1C;
+- per-image predictions rather than only annual composites;
+- class probabilities are available;
+- classes map directly to the project needs:
+  - trees
+  - grass
+  - flooded_vegetation
+  - crops
+  - shrub_and_scrub
+  - built
+  - bare
+  - water
+  - snow_and_ice
+- outputs can be thresholded by top-class probability before use.
+
+Dynamic World requires Earth Engine access. Keep that dependency optional and
+do not make it a prerequisite for the zero-cost GitHub Pages demo.
+
+**Zero-auth historical semantic cross-check:** Microsoft Planetary Computer
+`io-lulc-annual-v02` (Impact Observatory 9-class annual LULC), currently
+available through 2023. It is not contemporaneous with 2025/2026 imagery, so use
+it only as an AOI plausibility / historical land-cover prior, never as current
+truth.
+
+**Satlas status:** retained as a documented negative/diagnostic experiment, not
+as an operational semantic measurement source.
