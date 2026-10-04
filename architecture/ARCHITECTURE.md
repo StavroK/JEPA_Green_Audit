@@ -19,18 +19,20 @@ Ingestion & Preprocessing
   ├─ temporal alignment
   └─ image tiling
             |
-            +-------------------------+
-            |                         |
-            v                         v
-   JEPA representation path       Spectral path
-   ├─ context encoder            ├─ NDVI
-   ├─ target encoder             ├─ EVI/SAVI (later)
-   └─ embedding extraction       └─ simple vegetation masks
-            |                         |
-            +------------+------------+
-                         |
-                         v
-                 Feature fusion
+            +--------------------+--------------------+-------------------+
+            |                    |                    |                   |
+            v                    v                    v                   v
+   JEPA representation       Spectral path      Semantic path      Structural path
+   ├─ frozen encoder         ├─ NDVI            ├─ tree            ├─ nDSM / height
+   ├─ embedding change      ├─ EVI/SAVI        ├─ shrub/grass     └─ later field data
+   └─ anomaly features      └─ vegetation      ├─ developed
+                                                  ├─ bare
+                                                  └─ water
+            |                    |                    |                   |
+            +--------------------+--------------------+-------------------+
+                                      |
+                                      v
+                              Evidence fusion
                          |
               +----------+----------+
               |                     |
@@ -44,6 +46,8 @@ Ingestion & Preprocessing
                ├─ vegetation coverage
                ├─ gain / loss
                ├─ embedding anomaly
+               ├─ semantic land-cover composition
+               ├─ tree / other-vegetation separation
                └─ confidence / provenance
                          |
                          v
@@ -82,3 +86,28 @@ A production implementation can separate responsibilities:
 - **Low-cost first:** the public demo must not require a paid backend.
 - **Human validation:** high-risk findings become candidates for field inspection, not automatic factual claims.
 - **Temporal:** change through time is more valuable than a one-off “green/not green” map.
+
+
+## Semantic perception branch
+
+M3 showed that I-JEPA should not be treated as the sole semantic perception
+model. The operational architecture therefore separates four evidence types:
+
+- **semantic:** what is present (tree, grass/shrub, developed, bare, water);
+- **spectral:** vegetation-related physical signal (NDVI and related indices);
+- **structural:** vertical structure / height (nDSM where available);
+- **representation:** learned visual similarity/change (I-JEPA and baselines).
+
+The first semantic baseline selected for Sentinel-2 is **SatlasPretrain**, using
+its Sentinel-2 model family and land-cover taxonomy. SatlasPretrain explicitly
+includes a land-cover segmentation task with water, developed, tree, shrub,
+grass, crop, bare and related classes, plus a tree-cover regression task.
+
+For high-resolution orthophotos, object-level segmentation (for example SAMGeo
+or another aerial semantic model) may be evaluated separately. SAM-style
+segmentation is not treated as a substitute for Sentinel-2 land-cover semantics
+because Sentinel's 10 m pixels do not support reliable individual-tree crown
+delineation.
+
+Semantic outputs are evidence, not ground truth. They require local validation
+before being used in audit indicators.
