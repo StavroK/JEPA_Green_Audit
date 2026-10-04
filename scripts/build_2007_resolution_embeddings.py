@@ -5,6 +5,7 @@ from the 1 m, 2 m, 5 m and 10 m resolution pyramid and compute:
 
 - supervised ImageNet ResNet18 frozen embeddings
 - frozen I-JEPA embeddings
+- frozen DINOv2 ViT-S/14 embeddings (non-JEPA self-supervised baseline)
 
 The label is created once from the native 1 m RGB and reused for all resolutions,
 so only spatial resolution changes.
@@ -27,6 +28,9 @@ DEFAULT_PYRAMID = Path("data/interim/inegi_orthophoto/resolution_pyramid")
 DEFAULT_OUTPUT = Path("data/processed/fundidora_2007_resolution_embeddings.npz")
 DEFAULT_META = Path("data/processed/fundidora_2007_resolution_embeddings.json")
 RESOLUTIONS = (1, 2, 5, 10)
+DINOV2_REPO = "facebookresearch/dinov2"
+DINOV2_COMMIT = "7764ea0f912e53c92e82eb78a2a1631e92725fc8"
+DINOV2_MODEL = "dinov2_vits14"
 
 
 def load_labeled_cells(path: Path) -> list[dict[str, str]]:
@@ -119,6 +123,70 @@ class FrozenResNet18Encoder:
         }
 
 
+class FrozenDINOv2Encoder:
+    """Frozen DINOv2 ViT-S/14 non-JEPA self-supervised feature extractor."""
+
+    def __init__(self, device: str = "cpu") -> None:
+        try:
+            import torch
+        except ImportError as exc:
+            raise RuntimeError(
+                "PyTorch is required. Install requirements-jepa.txt."
+            ) from exc
+
+        self.torch = torch
+        self.device = torch.device(device)
+        repo = f"{DINOV2_REPO}:{DINOV2_COMMIT}"
+        self.model = torch.hub.load(
+            repo,
+            DINOV2_MODEL,
+            source="github",
+            pretrained=True,
+            trust_repo=True,
+            verbose=True,
+        )
+        self.model.eval().to(self.device)
+        for parameter in self.model.parameters():
+            parameter.requires_grad_(False)
+
+        self.mean = torch.tensor([0.485, 0.456, 0.406], dtype=torch.float32)
+        self.std = torch.tensor([0.229, 0.224, 0.225], dtype=torch.float32)
+
+    def encode_rgb(self, rgb: np.ndarray) -> np.ndarray:
+        torch = self.torch
+        arr = np.asarray(rgb).astype(np.float32)
+        if arr.max() > 1.0:
+            arr /= 255.0
+        arr = np.clip(arr, 0.0, 1.0)
+
+        tensor = torch.from_numpy(arr).permute(2, 0, 1).unsqueeze(0)
+        tensor = torch.nn.functional.interpolate(
+            tensor,
+            size=(224, 224),
+            mode="bilinear",
+            align_corners=False,
+            antialias=True,
+        )
+        tensor = (tensor - self.mean.view(1, 3, 1, 1)) / self.std.view(1, 3, 1, 1)
+        tensor = tensor.to(self.device)
+
+        with torch.inference_mode():
+            embedding = self.model(tensor)
+        return embedding.detach().cpu().numpy()[0].astype(np.float32)
+
+    def metadata(self) -> dict:
+        return {
+            "family": "DINOv2 self-supervised",
+            "model": "ViT-S/14",
+            "hub_model": DINOV2_MODEL,
+            "upstream_repo": DINOV2_REPO,
+            "upstream_commit": DINOV2_COMMIT,
+            "embedding_dim": 384,
+            "frozen": True,
+            "input_size": 224,
+        }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--labels", type=Path, default=DEFAULT_LABELS)
@@ -132,10 +200,16 @@ def main() -> None:
         default=Path("models/IN1K-vit.h.14-300e.pth.tar"),
     )
     parser.add_argument("--device", default="cpu")
+    parser.add_argument(
+        "--skip-dinov2",
+        action="store_true",
+        help="Skip the DINOv2 baseline (useful for reruns without network/model download).",
+    )
     args = parser.parse_args()
 
     rows = load_labeled_cells(args.labels)
     resnet = FrozenResNet18Encoder(device=args.device)
+    dinov2 = None if args.skip_dinov2 else FrozenDINOv2Encoder(device=args.device)
     ijepa = FrozenIJEPAEncoder(
         upstream_dir=args.upstream,
         checkpoint_path=args.checkpoint,
@@ -164,6 +238,7 @@ def main() -> None:
 
         resnet_features = []
         ijepa_features = []
+        dinov2_features = []
 
         print(f"{resolution} m: encoding {len(rows)} labeled cells")
         for index, row in enumerate(rows, start=1):
@@ -177,6 +252,8 @@ def main() -> None:
 
             resnet_features.append(resnet.encode_rgb(rgb))
             ijepa_features.append(ijepa.encode_rgb(rgb))
+            if dinov2 is not None:
+                dinov2_features.append(dinov2.encode_rgb(rgb))
 
             if index % 25 == 0 or index == len(rows):
                 print(f"  {index}/{len(rows)}", end="\r")
@@ -188,6 +265,10 @@ def main() -> None:
         payload[f"X_ijepa_{resolution}m"] = np.asarray(
             ijepa_features, dtype=np.float32
         )
+        if dinov2 is not None:
+            payload[f"X_dinov2_{resolution}m"] = np.asarray(
+                dinov2_features, dtype=np.float32
+            )
         resolution_meta[str(resolution)] = {
             "image": str(image_path),
             "shape_wh": [width, height],
@@ -205,6 +286,7 @@ def main() -> None:
         "non_vegetation": int((~y).sum()),
         "resnet18": resnet.metadata(),
         "ijepa": ijepa.metadata(),
+        "dinov2": dinov2.metadata() if dinov2 is not None else None,
         "resolution_sources": resolution_meta,
         "experimental_control": (
             "Same 2007 acquisition, same geographic cells and labels at all "
