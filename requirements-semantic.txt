@@ -1,9 +1,13 @@
-# Optional dependencies for the Satlas semantic branch.
+# Optional dependencies required by the JEPA Green Audit Satlas inference path.
+# This is intentionally narrower than upstream Satlas requirements.
+#
 # Install into the existing .venv-jepa:
 #   pip install -r requirements-semantic.txt
+#
+# eyediagram is omitted: upstream lists it, but the land-cover inference path
+# does not import it, and its current source build is fragile on Windows/Python 3.11.
 scipy
 scikit-image
 shapely
 tqdm
-eyediagram
 vit-pytorch
