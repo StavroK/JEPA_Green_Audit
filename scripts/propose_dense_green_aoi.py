@@ -24,7 +24,14 @@ from rasterio.warp import transform_bounds
 
 from jepa_green_audit.sentinel2 import load_aoi, valid_pixel_mask
 from jepa_green_audit.spectral import ndvi
-from scripts.fetch_sentinel2 import DEFAULT_WINDOWS, choose_scene, read_aoi
+try:
+    from scripts.fetch_sentinel2 import DEFAULT_WINDOWS, choose_scene, read_aoi
+except ModuleNotFoundError as exc:
+    # When executed as "python scripts/propose_dense_green_aoi.py", Python puts
+    # the scripts/ directory (not the repository root) on sys.path.
+    if exc.name != "scripts":
+        raise
+    from fetch_sentinel2 import DEFAULT_WINDOWS, choose_scene, read_aoi
 
 
 def vegetation_mask(arrays: dict, threshold: float) -> tuple[np.ndarray, np.ndarray]:
