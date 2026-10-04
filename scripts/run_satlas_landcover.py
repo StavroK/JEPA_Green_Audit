@@ -20,7 +20,7 @@ import numpy as np
 from PIL import Image
 import rasterio
 from pystac_client import Client
-from rasterio.windows import from_bounds
+from rasterio.windows import Window, from_bounds
 from rasterio.warp import transform_bounds
 import torch
 import torch.nn.functional as F
@@ -105,7 +105,41 @@ def fetch_item(item_id: str):
     return items[0]
 
 
-def read_visual_aoi(item, bbox: list[float]) -> np.ndarray:
+def context_window_for_aoi(
+    aoi_window: Window, context_size: int = 512
+) -> tuple[Window, tuple[slice, slice]]:
+    """Return a fixed-size context window and AOI slices within it.
+
+    Satlas was trained on image tiles with real spatial context. Padding a small
+    50-100 px AOI to 512 with black pixels can dominate the model response.
+    Instead, infer on a real 512x512 Sentinel context tile and crop predictions
+    back to the target AOI.
+    """
+    if aoi_window.width > context_size or aoi_window.height > context_size:
+        raise ValueError(
+            f"AOI window {aoi_window.width:.1f}x{aoi_window.height:.1f} "
+            f"exceeds {context_size}; tiling is required"
+        )
+
+    col0 = int(np.floor(aoi_window.col_off + aoi_window.width / 2 - context_size / 2))
+    row0 = int(np.floor(aoi_window.row_off + aoi_window.height / 2 - context_size / 2))
+    context = Window(col0, row0, context_size, context_size)
+
+    aoi_col_start = int(np.floor(aoi_window.col_off)) - col0
+    aoi_row_start = int(np.floor(aoi_window.row_off)) - row0
+    aoi_col_end = int(np.ceil(aoi_window.col_off + aoi_window.width)) - col0
+    aoi_row_end = int(np.ceil(aoi_window.row_off + aoi_window.height)) - row0
+
+    slices = (
+        slice(aoi_row_start, aoi_row_end),
+        slice(aoi_col_start, aoi_col_end),
+    )
+    return context, slices
+
+
+def read_visual_context(
+    item, bbox: list[float], context_size: int = 512
+) -> tuple[np.ndarray, np.ndarray, tuple[slice, slice]]:
     if "visual" not in item.assets:
         raise KeyError(
             f"{item.id} has no 'visual' TCI asset; available={sorted(item.assets)}"
@@ -119,29 +153,24 @@ def read_visual_aoi(item, bbox: list[float]) -> np.ndarray:
             left, bottom, right, top = transform_bounds(
                 "EPSG:4326", src.crs, *bbox, densify_pts=21
             )
-            window = from_bounds(left, bottom, right, top, src.transform)
+            aoi_window = from_bounds(left, bottom, right, top, src.transform)
+            context_window, aoi_slices = context_window_for_aoi(
+                aoi_window, context_size=context_size
+            )
             count = min(src.count, 3)
-            arr = src.read(list(range(1, count + 1)), window=window, boundless=True)
+            arr = src.read(
+                list(range(1, count + 1)),
+                window=context_window,
+                boundless=True,
+                fill_value=0,
+            )
     if arr.shape[0] != 3:
         raise RuntimeError(f"Expected 3-band TCI; got shape {arr.shape}")
-    return np.moveaxis(arr, 0, -1).astype(np.uint8)
 
-
-def center_pad_512(rgb: np.ndarray) -> tuple[np.ndarray, tuple[int, int, int, int]]:
-    h, w, _ = rgb.shape
-    if h > 512 or w > 512:
-        raise ValueError(f"AOI TCI {h}x{w} exceeds 512; tiling is required")
-    top = (512 - h) // 2
-    left = (512 - w) // 2
-    bottom = 512 - h - top
-    right = 512 - w - left
-    padded = np.pad(
-        rgb,
-        ((top, bottom), (left, right), (0, 0)),
-        mode="constant",
-        constant_values=0,
-    )
-    return padded, (top, bottom, left, right)
+    context_rgb = np.moveaxis(arr, 0, -1).astype(np.uint8)
+    rows, cols = aoi_slices
+    aoi_rgb = context_rgb[rows, cols]
+    return context_rgb, aoi_rgb, aoi_slices
 
 
 def load_landcover_model(vendor: Path, config_path: Path, weights: Path, device: str):
@@ -258,18 +287,18 @@ def main() -> None:
         "limitations": [
             "10 m Sentinel-2 land cover does not delineate individual tree crowns.",
             "Model predictions are not ground truth and require local validation.",
+            "Inference uses a real 512x512 Sentinel context tile and crops predictions to the AOI.",
             "Developed combines multiple urban surfaces at this resolution.",
         ],
     }
 
     for year, item_id in ids.items():
         item = fetch_item(item_id)
-        rgb = read_visual_aoi(item, bbox)
+        context_rgb, rgb, aoi_slices = read_visual_context(item, bbox)
         h, w, _ = rgb.shape
-        padded, (top, bottom, left, right) = center_pad_512(rgb)
 
         tensor = (
-            torch.from_numpy(padded)
+            torch.from_numpy(context_rgb)
             .permute(2, 0, 1)
             .float()
             .div(255.0)
@@ -281,17 +310,20 @@ def main() -> None:
             probs = outputs[0][0]
             probs = F.interpolate(
                 probs[None],
-                size=(512, 512),
+                size=context_rgb.shape[:2],
                 mode="bilinear",
                 align_corners=False,
             )[0]
-            native = probs.argmax(dim=0).cpu().numpy().astype(np.uint8)
+            native_context = probs.argmax(dim=0).cpu().numpy().astype(np.uint8)
 
-        native = native[top : top + h, left : left + w]
+        rows, cols = aoi_slices
+        native = native_context[rows, cols]
         native_names = np.asarray(LAND_COVER_CLASSES, dtype=object)[native]
         project = project_map(native_names)
         project_names = list(PROJECT_GROUPS)
 
+        context_path = args.output_dir / f"{args.site}_{year}_satlas_context.png"
+        Image.fromarray(context_rgb, mode="RGB").save(context_path)
         tci_path = args.output_dir / f"{args.site}_{year}_satlas_tci.png"
         Image.fromarray(rgb, mode="RGB").save(tci_path)
         semantic_path = args.output_dir / f"{args.site}_{year}_semantic.png"
@@ -301,6 +333,8 @@ def main() -> None:
         summary["years"][year] = {
             "item_id": item_id,
             "shape": [h, w],
+            "context_shape": list(context_rgb.shape[:2]),
+            "context_png": str(context_path),
             "native_composition_pct": composition(native, LAND_COVER_CLASSES),
             "project_composition_pct": composition(project, project_names),
             "tci_png": str(tci_path),
