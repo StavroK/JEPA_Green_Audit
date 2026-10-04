@@ -13,7 +13,8 @@ Pinned upstream:
 - repository: `allenai/satlas`
 - commit: `c8b9aa5d4acdd3e4f58eb7cbb28ac18bb12c985f`
 - Sentinel-2 model family: Swin-v2, single-image RGB or multispectral
-- initial checkpoint candidate: `sentinel2_swinb_si_rgb.pth`
+- checkpoint: `sentinel2_swinb_si_rgb.pth`
+- SHA256: `94c075a155fc489947dc091305586675649c99c7d8567fe2195792b58875511b`
 
 ## Why SatlasPretrain
 
