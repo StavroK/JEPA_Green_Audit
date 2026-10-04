@@ -1,0 +1,2 @@
+# Optional Google Earth Engine dependency for Dynamic World semantics.
+earthengine-api
