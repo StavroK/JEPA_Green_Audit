@@ -20,5 +20,5 @@ def test_sentinel_reader_accepts_feature_collection_aoi():
 
 def test_rgb_exporter_accepts_la_pastora_feature_collection():
     feature, bbox = read_aoi_bbox(Path("config/aoi_la_pastora.geojson"))
-    assert feature["properties"]["name"] == "La Pastora dense-green pilot AOI"
-    assert bbox == [-100.2545, 25.6615, -100.2405, 25.6745]
+    assert feature["properties"]["name"] == "La Pastora green-core pilot AOI"
+    assert bbox == [-100.2516, 25.6651, -100.2461, 25.6714]
