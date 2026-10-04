@@ -29,3 +29,7 @@ data/raw/inegi/
 # Generated review imagery; keep human CSV labels versionable
 data/labels/fundidora_2007_resolution/2007/
 data/labels/fundidora_2007_resolution/fundidora_2007_review_grid.png
+
+# External semantic model source and weights
+vendor/satlas/
+models/satlas/
