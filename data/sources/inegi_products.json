@@ -30,6 +30,16 @@
       "sha256": "d1d84b66c66fd5ef2d12fe0127fd73b1add74282f5e8d231e79d4b734ab38c92",
       "usage": "Historical 1 m RGB orthophoto for Fundidora spatial-resolution/representation benchmark; not current vegetation truth",
       "target_dir": "data/raw/inegi"
+    },
+    {
+      "sheet": "G14C26A4",
+      "product": "Modelo Digital de Elevación Tipo Terreno (MDT), 1.5 m",
+      "acquisition_year": 2024,
+      "catalog_upc": "794551182970",
+      "catalog_url": "https://www.inegi.org.mx/app/biblioteca/ficha.html?upc=794551182970",
+      "verification_status": "catalog_verified_download_pending",
+      "usage": "Bare-earth terrain candidate for La Pastora M3b; pair with matching G14C26A4 MDS after direct download and checksum are verified",
+      "target_dir": "data/raw/inegi"
     }
   ]
 }
