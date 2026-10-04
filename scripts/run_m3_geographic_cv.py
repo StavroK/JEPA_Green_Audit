@@ -53,6 +53,7 @@ except ModuleNotFoundError:
     )
 
 DEFAULT_OUTPUT = Path("outputs/fundidora_m3_geographic_cv.json")
+DEFAULT_RGB_BASELINES = Path("data/processed/fundidora_m3_rgb_baselines.npz")
 FOLD_WIDTH = 2
 
 
@@ -114,6 +115,12 @@ def main() -> None:
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     parser.add_argument("--labels", type=Path, default=DEFAULT_LABELS)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--rgb-baselines",
+        type=Path,
+        default=DEFAULT_RGB_BASELINES,
+        help="Optional frozen ResNet18/DINOv2 feature NPZ built from the same 8x8 RGB cells.",
+    )
     args = parser.parse_args()
 
     data = np.load(args.dataset)
@@ -137,6 +144,35 @@ def main() -> None:
             True,
         ),
     }
+
+    if args.rgb_baselines.exists():
+        rgb = np.load(args.rgb_baselines)
+        expected = {
+            "y": y,
+            "year": years.astype(str),
+            "row": rows,
+            "col": cols,
+        }
+        actual = {
+            "y": rgb["y"].astype(bool),
+            "year": rgb["year"].astype(str),
+            "row": rgb["row"].astype(int),
+            "col": rgb["col"].astype(int),
+        }
+        for key in expected:
+            if not np.array_equal(expected[key], actual[key]):
+                raise ValueError(
+                    f"RGB baseline alignment mismatch for {key}; rebuild features "
+                    "from the same M3 labels before running CV."
+                )
+
+        representations["resnet18"] = (rgb["X_resnet18"].astype(np.float32), False)
+        if "X_dinov2" in rgb.files:
+            representations["dinov2"] = (rgb["X_dinov2"].astype(np.float32), False)
+    else:
+        print(
+            f"Warning: {args.rgb_baselines} not found; ResNet18/DINOv2 will be omitted."
+        )
     trivial_names = (
         "always_vegetation",
         "always_non_vegetation",
@@ -152,6 +188,7 @@ def main() -> None:
         "review_grid": [REVIEW_GRID, REVIEW_GRID],
         "fold_definition": "4 contiguous vertical holdouts, 2 columns each",
         "same_location_same_fold_across_years": True,
+        "rgb_baselines_file": str(args.rgb_baselines) if args.rgb_baselines.exists() else None,
         "label_fractions": list(LABEL_FRACTIONS),
         "seeds": list(SEEDS),
         "dataset_summary": {
