@@ -72,13 +72,22 @@ def main() -> None:
         raise ValueError("Manifest contains no products")
 
     for product in products:
-        filename = product["filename"]
+        print(f"{product.get('sheet', 'unknown sheet')} — {product.get('product', 'unknown product')}")
+
+        filename = product.get("filename")
+        url = product.get("source_url")
+        if not filename or not url:
+            status = product.get("verification_status", "metadata_only")
+            print(
+                "  skipped: no direct downloadable filename/source_url "
+                f"(status={status})"
+            )
+            continue
+
         destination = Path(product.get("target_dir", "data/raw/inegi")) / filename
         expected_raw = product.get("sha256")
         expected = expected_raw.lower() if expected_raw else None
-        url = product["source_url"]
 
-        print(f"{product['sheet']} — {product['product']}")
         print(f"  destination: {destination}")
 
         if destination.exists() and not args.force:
