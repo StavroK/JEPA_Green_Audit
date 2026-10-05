@@ -61,6 +61,11 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--image", type=Path, required=True)
     p.add_argument("--aoi", type=Path, required=True)
+    p.add_argument(
+        "--source-crs",
+        default=None,
+        help="Optional CRS override for legacy rasters with ambiguous sidecars.",
+    )
     p.add_argument("--site", required=True)
     p.add_argument("--date-label", required=True)
     p.add_argument("--output-dir", type=Path, required=True)
@@ -74,9 +79,10 @@ def main() -> None:
     config_json = args.output_dir / f"{args.site}_{args.date_label}_annotation_config.json"
 
     with rasterio.open(args.image) as src:
-        if src.crs is None:
+        source_crs = args.source_crs or src.crs
+        if source_crs is None:
             raise ValueError("Source orthophoto has no CRS")
-        geom_src = transform_geom("EPSG:4326", src.crs, geom_wgs84)
+        geom_src = transform_geom("EPSG:4326", source_crs, geom_wgs84)
         cropped, transform = rio_mask(src, [geom_src], crop=True, filled=True)
         profile = src.profile.copy()
         profile.update(
@@ -84,6 +90,7 @@ def main() -> None:
             width=cropped.shape[2],
             transform=transform,
             count=min(cropped.shape[0], 3),
+            crs=source_crs,
         )
         with rasterio.open(crop_tif, "w", **profile) as dst:
             dst.write(cropped[: profile["count"]])
@@ -102,7 +109,7 @@ def main() -> None:
             "preview_png": str(preview_png),
             "width_px": int(preview.shape[1]),
             "height_px": int(preview.shape[0]),
-            "crs": src.crs.to_string(),
+            "crs": str(source_crs),
             "transform": list(transform)[:6],
             "annotation_definition": (
                 "Draw polygons over visible tree-crown canopy only. Exclude grass, "
