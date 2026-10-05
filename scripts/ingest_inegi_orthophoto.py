@@ -54,6 +54,14 @@ def main() -> None:
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--aoi", type=Path, required=True)
     parser.add_argument(
+        "--source-crs",
+        default=None,
+        help=(
+            "Optional CRS override for legacy rasters whose sidecar metadata is "
+            "ambiguous or misread by GDAL (for example EPSG:6369)."
+        ),
+    )
+    parser.add_argument(
         "--output-tif",
         type=Path,
         default=Path("data/interim/inegi/orthophoto_aoi.tif"),
@@ -68,9 +76,10 @@ def main() -> None:
     geometry_wgs84 = load_aoi(args.aoi)
 
     with rasterio.open(args.source) as src:
-        if src.crs is None:
+        source_crs = args.source_crs or src.crs
+        if source_crs is None:
             raise ValueError("source raster has no CRS/georeferencing")
-        geometry_src = transform_geom("EPSG:4326", src.crs, geometry_wgs84)
+        geometry_src = transform_geom("EPSG:4326", source_crs, geometry_wgs84)
         cropped, transform = mask(src, [geometry_src], crop=True)
         profile = src.profile.copy()
         profile.update(
@@ -78,6 +87,7 @@ def main() -> None:
             width=cropped.shape[2],
             transform=transform,
             count=cropped.shape[0],
+            crs=source_crs,
         )
 
     args.output_tif.parent.mkdir(parents=True, exist_ok=True)
@@ -91,6 +101,7 @@ def main() -> None:
     print(f"Wrote {args.output_tif}")
     print(f"Wrote {args.output_png}")
     print(f"RGB shape: {rgb.shape}")
+    print(f"CRS used: {source_crs}")
 
 
 if __name__ == "__main__":
