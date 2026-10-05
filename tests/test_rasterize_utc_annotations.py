@@ -4,7 +4,7 @@ from scripts.rasterize_utc_annotations import pixel_polygon_to_map, annotations_
 
 
 def test_pixel_polygon_to_map():
-    t = Affine.translation(100, 200) * Affine.scale(2, -2)
+    t = Affine.translation(100, 200) @ Affine.scale(2, -2)
     pts = pixel_polygon_to_map([[0, 0], [10, 5]], t)
     assert pts == [[100.0, 200.0], [120.0, 190.0]]
 
