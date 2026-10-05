@@ -12,7 +12,7 @@ from rasterio.features import rasterize
 
 
 def pixel_polygon_to_map(coords, transform):
-    return [list(transform * (float(x), float(y))) for x, y in coords]
+    return [list(transform @ (float(x), float(y))) for x, y in coords]
 
 
 def annotations_to_shapes(payload: dict, transform):
