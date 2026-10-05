@@ -49,7 +49,7 @@ def main() -> None:
     payload = json.loads(args.baseline_json.read_text(encoding="utf-8"))
     item_id = payload["observations"][args.year]["scene"]["item_id"]
     item = fetch_item(item_id)
-    arrays = read_aoi(item, bbox)
+    arrays = load_aoi(item, bbox)
 
     index = ndvi(arrays["nir"], arrays["red"])
     valid = valid_pixel_mask(arrays["scl"])
