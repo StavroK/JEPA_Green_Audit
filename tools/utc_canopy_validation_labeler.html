@@ -17,44 +17,23 @@ canvas{border:1px solid #555;background:#111;max-width:100%;height:auto}
 <label>RGB <input id="imgfile" type="file" accept="image/png,image/jpeg"></label>
 <label>Points JSON <input id="jsonfile" type="file" accept=".json,application/json"></label>
 <button id="tree">Tree canopy</button><button id="non">Non-tree</button><button id="uncertain">Uncertain</button>
-<button id="prev">Previous</button><button id="next">Next</button>
-<label>Zoom <select id="zoom"><option value="1">1×</option><option value="1.5">1.5×</option><option value="2" selected>2×</option><option value="3">3×</option><option value="4">4×</option></select></label>
-<button id="center">Center point</button>
-<button id="export">Export reviewed JSON</button>
+<button id="prev">Previous</button><button id="next">Next</button><button id="export">Export reviewed JSON</button>
 <span class="stats" id="stats"></span>
 </div>
-<div id="wrap" style="overflow:auto; max-width:100%; max-height:72vh; border:1px solid #aaa;"><canvas id="canvas"></canvas></div>
+<div id="wrap"><canvas id="canvas"></canvas></div>
 <script>
 const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
 let img=new Image(),payload=null,index=0;
-const wrap=document.getElementById('wrap');
-let zoom=2.0;
 const colors={tree:'#00ff55',non:'#ff3b30',uncertain:'#ffd60a'};
 function draw(){
  if(!img.width){return}
- canvas.width=img.width;canvas.height=img.height;
- canvas.style.width=(img.width*zoom)+'px';
- canvas.style.height=(img.height*zoom)+'px';
- ctx.drawImage(img,0,0);
+ canvas.width=img.width;canvas.height=img.height;ctx.drawImage(img,0,0);
  if(payload&&payload.points.length){
   const p=payload.points[index];
-  // High-visibility target: cyan outer ring + magenta inner ring + crosshair.
-  ctx.beginPath();ctx.arc(p.x,p.y,18,0,Math.PI*2);ctx.lineWidth=6;ctx.strokeStyle='#00ffff';ctx.stroke();
-  ctx.beginPath();ctx.arc(p.x,p.y,9,0,Math.PI*2);ctx.lineWidth=4;ctx.strokeStyle='#ff00ff';ctx.stroke();
-  ctx.beginPath();ctx.moveTo(p.x-28,p.y);ctx.lineTo(p.x+28,p.y);ctx.moveTo(p.x,p.y-28);ctx.lineTo(p.x,p.y+28);
-  ctx.lineWidth=3;ctx.strokeStyle='#ffff00';ctx.stroke();
-  requestAnimationFrame(()=>centerCurrent());
+  ctx.beginPath();ctx.arc(p.x,p.y,12,0,Math.PI*2);ctx.lineWidth=4;ctx.strokeStyle='#ff0000';ctx.stroke();
+  ctx.beginPath();ctx.moveTo(p.x-18,p.y);ctx.lineTo(p.x+18,p.y);ctx.moveTo(p.x,p.y-18);ctx.lineTo(p.x,p.y+18);ctx.lineWidth=2;ctx.strokeStyle='#000';ctx.stroke();
  }
  updateStats();
-}
-
-function centerCurrent(){
- if(!payload||!payload.points.length||!img.width)return;
- const p=payload.points[index];
- const sx=p.x*zoom;
- const sy=p.y*zoom;
- wrap.scrollLeft=Math.max(0,sx-wrap.clientWidth/2);
- wrap.scrollTop=Math.max(0,sy-wrap.clientHeight/2);
 }
 function updateStats(){
  if(!payload){document.getElementById('stats').textContent='';return}
@@ -69,7 +48,5 @@ document.getElementById('non').onclick=()=>label('non');
 document.getElementById('uncertain').onclick=()=>label('uncertain');
 document.getElementById('prev').onclick=()=>{if(payload){index=Math.max(0,index-1);draw()}};
 document.getElementById('next').onclick=()=>{if(payload){index=Math.min(payload.points.length-1,index+1);draw()}};
-document.getElementById('zoom').onchange=e=>{zoom=parseFloat(e.target.value);draw()};
-document.getElementById('center').onclick=()=>centerCurrent();
 document.getElementById('export').onclick=()=>{if(!payload)return;const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='utc_validation_reviewed.json';a.click()};
 </script></body></html>
