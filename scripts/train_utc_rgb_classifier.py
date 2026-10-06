@@ -36,8 +36,12 @@ def feature_stack(rgb: np.ndarray) -> tuple[np.ndarray, list[str]]:
     lum=0.299*r+0.587*g+0.114*b
     mean3=box_mean(lum,1)
     mean5=box_mean(lum,2)
+    mean9=box_mean(lum,4)
+    mean15=box_mean(lum,7)
     tex3=np.sqrt(np.maximum(box_mean(lum*lum,1)-mean3*mean3,0))
     tex5=np.sqrt(np.maximum(box_mean(lum*lum,2)-mean5*mean5,0))
+    tex9=np.sqrt(np.maximum(box_mean(lum*lum,4)-mean9*mean9,0))
+    tex15=np.sqrt(np.maximum(box_mean(lum*lum,7)-mean15*mean15,0))
     mx=np.maximum(np.maximum(r,g),b)
     mn=np.minimum(np.minimum(r,g),b)
     chroma=mx-mn
@@ -53,8 +57,13 @@ def feature_stack(rgb: np.ndarray) -> tuple[np.ndarray, list[str]]:
     g_var3=np.maximum(box_mean(g*g,1)-g_mean3*g_mean3,0)
     b_var3=np.maximum(box_mean(b*b,1)-b_mean3*b_mean3,0)
     color_var3=np.sqrt((r_var3+g_var3+b_var3)/3.0)
-    feats=np.stack([r,g,b,rn,gn,bn,exg,brightness,green_dom,chroma,saturation,hue_sin,hue_cos,mean3,mean5,tex3,tex5,color_var3],axis=-1)
-    names=["r","g","b","rn","gn","bn","exg","brightness","green_dominance","chroma","saturation","hue_sin","hue_cos","mean3","mean5","texture3","texture5","color_var3"]
+    r_mean9=box_mean(r,4); g_mean9=box_mean(g,4); b_mean9=box_mean(b,4)
+    r_var9=np.maximum(box_mean(r*r,4)-r_mean9*r_mean9,0)
+    g_var9=np.maximum(box_mean(g*g,4)-g_mean9*g_mean9,0)
+    b_var9=np.maximum(box_mean(b*b,4)-b_mean9*b_mean9,0)
+    color_var9=np.sqrt((r_var9+g_var9+b_var9)/3.0)
+    feats=np.stack([r,g,b,rn,gn,bn,exg,brightness,green_dom,chroma,saturation,hue_sin,hue_cos,mean3,mean5,mean9,mean15,tex3,tex5,tex9,tex15,color_var3,color_var9],axis=-1)
+    names=["r","g","b","rn","gn","bn","exg","brightness","green_dominance","chroma","saturation","hue_sin","hue_cos","mean3","mean5","mean9","mean15","texture3","texture5","texture9","texture15","color_var3","color_var9"]
     return feats.astype(np.float32),names
 
 
