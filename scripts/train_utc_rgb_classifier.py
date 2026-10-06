@@ -74,7 +74,7 @@ def parse_labels(payload: dict, width: int, height: int):
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--image",type=Path,required=True)
-    p.add_argument("--labels",type=Path,required=True)
+    p.add_argument("--labels",type=Path,nargs="+",required=True,help="One or more point-label JSON files; files are merged for training")
     p.add_argument("--output-probability",type=Path,required=True)
     p.add_argument("--output-mask",type=Path,required=True)
     p.add_argument("--output-preview",type=Path,required=True)
@@ -90,10 +90,14 @@ def main():
         h,w=rgb.shape[:2]
         profile=src.profile.copy()
 
-    payload=json.loads(args.labels.read_text(encoding="utf-8"))
+    merged_labels=[]
+    for label_path in args.labels:
+        payload=json.loads(label_path.read_text(encoding="utf-8"))
+        merged_labels.extend(payload.get("labels",[]))
+    payload={"labels":merged_labels}
     xs,ys,y=parse_labels(payload,w,h)
     subtype_counts={}
-    for item in payload.get("labels",[]):
+    for item in merged_labels:
         lab=item.get("label")
         if lab in {"tree","non","pavement","water","grass","roof","shadow","bare"}:
             subtype_counts[lab]=subtype_counts.get(lab,0)+1
@@ -146,7 +150,7 @@ def main():
       "method":"human_calibrated_rgb_random_forest_v1",
       "status":"model_estimate_requires_independent_validation",
       "source_image":str(args.image),
-      "labels_file":str(args.labels),
+      "labels_files":[str(p) for p in args.labels],
       "n_labels":int(len(y)),
       "tree_labels":int((y==1).sum()),
       "non_tree_labels":int((y==0).sum()),
