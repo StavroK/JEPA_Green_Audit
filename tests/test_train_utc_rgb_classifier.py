@@ -23,3 +23,17 @@ def test_parse_labels_ignores_uncertain_and_out_of_bounds():
     assert xs.tolist()==[1,3]
     assert ys.tolist()==[2,4]
     assert y.tolist()==[1,0]
+
+
+def test_parse_labels_accepts_hard_negative_subtypes():
+    payload={"labels":[
+        {"x":1,"y":1,"label":"tree"},
+        {"x":2,"y":2,"label":"water"},
+        {"x":3,"y":3,"label":"pavement"},
+        {"x":4,"y":4,"label":"grass"},
+        {"x":5,"y":5,"label":"roof"},
+        {"x":6,"y":6,"label":"shadow"},
+        {"x":7,"y":7,"label":"bare"},
+    ]}
+    xs,ys,y=parse_labels(payload,10,10)
+    assert y.tolist()==[1,0,0,0,0,0,0]
