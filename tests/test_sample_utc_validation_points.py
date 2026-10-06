@@ -15,3 +15,23 @@ def test_sample_points_is_spatial_and_deterministic():
     assert a==b
     assert any(x["model_class"]=="tree" for x in a)
     assert any(x["model_class"]=="non" for x in a)
+
+
+def test_load_training_points_includes_hard_negative_subtypes(tmp_path):
+    import json
+    from scripts.sample_utc_validation_points import load_training_points
+
+    p=tmp_path/"labels.json"
+    p.write_text(json.dumps({"labels":[
+        {"x":1,"y":1,"label":"tree"},
+        {"x":2,"y":2,"label":"pavement"},
+        {"x":3,"y":3,"label":"water"},
+        {"x":4,"y":4,"label":"grass"},
+        {"x":5,"y":5,"label":"roof"},
+        {"x":6,"y":6,"label":"shadow"},
+        {"x":7,"y":7,"label":"bare"},
+        {"x":8,"y":8,"label":"uncertain"},
+    ]}),encoding="utf-8")
+
+    pts=load_training_points(p)
+    assert pts==[(1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7)]
