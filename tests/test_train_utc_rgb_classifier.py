@@ -37,3 +37,13 @@ def test_parse_labels_accepts_hard_negative_subtypes():
     ]}
     xs,ys,y=parse_labels(payload,10,10)
     assert y.tolist()==[1,0,0,0,0,0,0]
+
+
+def test_v2_hard_negatives_need_tree_labels_from_another_file():
+    payload={"labels":[
+        {"x":1,"y":1,"label":"pavement"},
+        {"x":2,"y":2,"label":"water"},
+        {"x":3,"y":3,"label":"grass"},
+    ]}
+    xs,ys,y=parse_labels(payload,10,10)
+    assert y.tolist()==[0,0,0]
