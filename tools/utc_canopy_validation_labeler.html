@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>UTC Independent Validation</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:18px;background:#f5f5f5;color:#222}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+button,input{font:inherit}.active{outline:3px solid #222}
+#wrap{position:relative;display:inline-block;max-width:100%}
+canvas{border:1px solid #555;background:#111;max-width:100%;height:auto}
+.note{max-width:1100px;line-height:1.4}.stats{font-weight:600}
+</style>
+</head><body>
+<h1>UTC independent validation</h1>
+<p class="note">Load the original RGB preview and the validation-points JSON. Review each highlighted point <strong>without looking at the model overlay</strong>. Label the pixel/location as Tree canopy, Non-tree, or Uncertain. Use Next/Previous to move through the sample.</p>
+<div class="toolbar">
+<label>RGB <input id="imgfile" type="file" accept="image/png,image/jpeg"></label>
+<label>Points JSON <input id="jsonfile" type="file" accept=".json,application/json"></label>
+<button id="tree">Tree canopy</button><button id="non">Non-tree</button><button id="uncertain">Uncertain</button>
+<button id="prev">Previous</button><button id="next">Next</button><button id="export">Export reviewed JSON</button>
+<span class="stats" id="stats"></span>
+</div>
+<div id="wrap"><canvas id="canvas"></canvas></div>
+<script>
+const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+let img=new Image(),payload=null,index=0;
+const colors={tree:'#00ff55',non:'#ff3b30',uncertain:'#ffd60a'};
+function draw(){
+ if(!img.width){return}
+ canvas.width=img.width;canvas.height=img.height;ctx.drawImage(img,0,0);
+ if(payload&&payload.points.length){
+  const p=payload.points[index];
+  ctx.beginPath();ctx.arc(p.x,p.y,12,0,Math.PI*2);ctx.lineWidth=4;ctx.strokeStyle='#00ffff';ctx.stroke();
+  ctx.beginPath();ctx.moveTo(p.x-18,p.y);ctx.lineTo(p.x+18,p.y);ctx.moveTo(p.x,p.y-18);ctx.lineTo(p.x,p.y+18);ctx.lineWidth=2;ctx.strokeStyle='#000';ctx.stroke();
+ }
+ updateStats();
+}
+function updateStats(){
+ if(!payload){document.getElementById('stats').textContent='';return}
+ const done=payload.points.filter(p=>p.human_label).length;
+ document.getElementById('stats').textContent=`Point ${index+1}/${payload.points.length} · reviewed ${done}`;
+}
+document.getElementById('imgfile').onchange=e=>{const f=e.target.files[0];if(!f)return;img.onload=draw;img.src=URL.createObjectURL(f)};
+document.getElementById('jsonfile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{payload=JSON.parse(r.result);index=0;draw()};r.readAsText(f)};
+function label(v){if(!payload)return;payload.points[index].human_label=v;if(index<payload.points.length-1)index++;draw()}
+document.getElementById('tree').onclick=()=>label('tree');
+document.getElementById('non').onclick=()=>label('non');
+document.getElementById('uncertain').onclick=()=>label('uncertain');
+document.getElementById('prev').onclick=()=>{if(payload){index=Math.max(0,index-1);draw()}};
+document.getElementById('next').onclick=()=>{if(payload){index=Math.min(payload.points.length-1,index+1);draw()}};
+document.getElementById('export').onclick=()=>{if(!payload)return;const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='utc_validation_reviewed.json';a.click()};
+</script></body></html>
