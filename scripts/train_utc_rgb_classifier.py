@@ -20,7 +20,10 @@ import rasterio
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 
-from scripts.propose_utc_canopy_mask import box_mean, robust_rgb
+try:
+    from scripts.propose_utc_canopy_mask import box_mean, robust_rgb
+except ModuleNotFoundError:  # direct execution: python scripts/train_utc_rgb_classifier.py
+    from propose_utc_canopy_mask import box_mean, robust_rgb
 
 
 def feature_stack(rgb: np.ndarray) -> tuple[np.ndarray, list[str]]:
