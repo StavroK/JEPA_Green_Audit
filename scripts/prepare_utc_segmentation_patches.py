@@ -14,6 +14,14 @@ def block_split(block_row:int, block_col:int, blocks:int)->str:
 def patch_origins(width:int,height:int,patch:int,n:int,blocks:int,seed:int):
     if patch>width or patch>height:
         raise ValueError("Patch size exceeds image dimensions")
+    min_block_w=min(round((c+1)*width/blocks)-round(c*width/blocks) for c in range(blocks))
+    min_block_h=min(round((r+1)*height/blocks)-round(r*height/blocks) for r in range(blocks))
+    if patch>min_block_w or patch>min_block_h:
+        raise ValueError(
+            f"Patch size {patch}px does not fit inside every {blocks}x{blocks} spatial block "
+            f"(smallest block is {min_block_w}x{min_block_h}px). "
+            "Use a smaller patch size or fewer blocks to preserve split isolation."
+        )
     rng=np.random.default_rng(seed)
     per_block=int(math.ceil(n/(blocks*blocks)))
     out=[]; seen=set()
