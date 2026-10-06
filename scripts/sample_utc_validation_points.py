@@ -71,7 +71,7 @@ def sample_points(prob:np.ndarray,excluded:np.ndarray,n:int,blocks:int,threshold
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--probability",type=Path,required=True)
-    p.add_argument("--training-labels",type=Path,required=True)
+    p.add_argument("--training-labels",type=Path,nargs="+",required=True,help="One or more training-label JSON files to exclude from validation sampling")
     p.add_argument("--output",type=Path,required=True)
     p.add_argument("--n",type=int,default=200)
     p.add_argument("--blocks",type=int,default=4)
@@ -84,7 +84,9 @@ def main():
         prob=src.read(1).astype(np.float32)
         h,w=prob.shape
 
-    training=load_training_points(args.training_labels)
+    training=[]
+    for label_path in args.training_labels:
+        training.extend(load_training_points(label_path))
     excluded=exclusion_mask(h,w,training,args.exclude_radius)
     pts=sample_points(prob,excluded,args.n,args.blocks,args.threshold,args.seed)
     if len(pts)<min(args.n,50):
@@ -110,6 +112,7 @@ def main():
     args.output.write_text(json.dumps(payload,indent=2),encoding="utf-8")
     print(f"Wrote {args.output}")
     print(f"Validation points: {len(pts)}")
+    print(f"Training points loaded for exclusion: {len(training)}")
     print(f"Training points excluded within radius: {args.exclude_radius}px")
 
 
