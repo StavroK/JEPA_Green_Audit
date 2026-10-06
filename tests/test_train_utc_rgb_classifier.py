@@ -10,6 +10,9 @@ def test_feature_stack_shape():
     assert feats.shape[2]==len(names)
     assert "exg" in names
     assert "texture5" in names
+    assert "texture9" in names
+    assert "texture15" in names
+    assert "color_var9" in names
 
 
 def test_parse_labels_ignores_uncertain_and_out_of_bounds():
