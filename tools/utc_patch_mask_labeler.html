@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UTC Dense Patch Labeler</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:18px;background:#f5f5f5;color:#222}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+button,input{font:inherit}canvas{border:1px solid #555;background:#111;cursor:crosshair}
+.note{max-width:980px;line-height:1.4}.stats{font-weight:600}.done{color:#087f23}
+</style>
+</head>
+<body>
+<h1>UTC dense patch labeler</h1>
+<p class="note">Select manifest.json and all PNG files from the images folder. Draw polygons over visible tree-crown canopy only. Exclude grass, roofs, pavement, water, bare soil, and unsupported shadow. Close each polygon, then mark the patch complete.</p>
+<div class="toolbar">
+<label>Manifest <input id="manifestFile" type="file" accept=".json,application/json"></label>
+<label>Patch PNGs <input id="imageFiles" type="file" accept="image/png" multiple></label>
+<button id="closePoly">Close polygon</button>
+<button id="undoPoint">Undo point</button>
+<button id="deletePoly">Delete last polygon</button>
+<button id="completePatch">Mark patch complete</button>
+<button id="prevPatch">Previous</button>
+<button id="nextPatch">Next</button>
+<button id="nextTodo">Next incomplete</button>
+<button id="exportJson">Export annotations</button>
+<span id="stats" class="stats"></span>
+</div>
+<canvas id="canvas" width="256" height="256"></canvas>
+<script>
+const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+let manifest=null,files=new Map(),index=0,img=new Image(),points=[];
+let annotations={schema_version:1,task:'utc_dense_patch_annotations',patches:{}};
+function current(){return manifest&&manifest.patches?manifest.patches[index]:null}
+function record(){
+ const p=current(); if(!p)return null;
+ if(!annotations.patches[p.id]) annotations.patches[p.id]={file:p.file,split:p.split,polygons:[],complete:false};
+ return annotations.patches[p.id];
+}
+function updateStats(){
+ const el=document.getElementById('stats');
+ if(!manifest){el.textContent='';return}
+ const p=current(),r=record();
+ const done=manifest.patches.filter(x=>annotations.patches[x.id]&&annotations.patches[x.id].complete).length;
+ el.textContent='Patch '+(index+1)+'/'+manifest.patches.length+' · '+p.split+' · polygons '+r.polygons.length+' · complete '+done+'/'+manifest.patches.length;
+ el.className='stats'+(r.complete?' done':'');
+}
+function redraw(){
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ if(img.complete&&img.width)ctx.drawImage(img,0,0,canvas.width,canvas.height);
+ const r=record();
+ if(r){
+  ctx.lineWidth=2;ctx.strokeStyle='#00ff55';ctx.fillStyle='rgba(0,255,85,.20)';
+  for(const poly of r.polygons){ctx.beginPath();poly.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));ctx.closePath();ctx.fill();ctx.stroke();}
+ }
+ ctx.strokeStyle='#ffff00';ctx.fillStyle='#ffff00';ctx.beginPath();
+ points.forEach((p,i)=>{if(i)ctx.lineTo(...p);else ctx.moveTo(...p);ctx.fillRect(p[0]-2,p[1]-2,4,4)});ctx.stroke();
+ updateStats();
+}
+function loadCurrent(){
+ points=[];const p=current();if(!p)return;
+ const f=files.get(p.file);
+ if(!f){ctx.clearRect(0,0,canvas.width,canvas.height);updateStats();return}
+ img.onload=()=>{canvas.width=img.width;canvas.height=img.height;redraw()};
+ img.src=URL.createObjectURL(f);
+}
+document.getElementById('manifestFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{manifest=JSON.parse(rd.result);index=0;loadCurrent()};rd.readAsText(f)};
+document.getElementById('imageFiles').onchange=e=>{files=new Map([...e.target.files].map(f=>[f.name,f]));loadCurrent()};
+canvas.onclick=e=>{if(!manifest||!img.width)return;const b=canvas.getBoundingClientRect();points.push([Math.round((e.clientX-b.left)*canvas.width/b.width),Math.round((e.clientY-b.top)*canvas.height/b.height)]);redraw()};
+document.getElementById('closePoly').onclick=()=>{if(points.length>=3){record().polygons.push([...points]);points=[];redraw()}};
+document.getElementById('undoPoint').onclick=()=>{points.pop();redraw()};
+document.getElementById('deletePoly').onclick=()=>{const r=record();if(r)r.polygons.pop();redraw()};
+document.getElementById('completePatch').onclick=()=>{const r=record();if(!r)return;r.complete=true;updateStats();if(index<manifest.patches.length-1){index++;loadCurrent()}};
+document.getElementById('prevPatch').onclick=()=>{if(manifest){index=Math.max(0,index-1);loadCurrent()}};
+document.getElementById('nextPatch').onclick=()=>{if(manifest){index=Math.min(manifest.patches.length-1,index+1);loadCurrent()}};
+document.getElementById('nextTodo').onclick=()=>{if(!manifest)return;for(let k=1;k<=manifest.patches.length;k++){const j=(index+k)%manifest.patches.length,p=manifest.patches[j];if(!(annotations.patches[p.id]&&annotations.patches[p.id].complete)){index=j;loadCurrent();break}}};
+document.getElementById('exportJson').onclick=()=>{if(!manifest)return;annotations.manifest={source_image:manifest.source_image,patch_size:manifest.patch_size,spatial_blocks:manifest.spatial_blocks,seed:manifest.seed};const blob=new Blob([JSON.stringify(annotations,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='utc_dense_patch_annotations.json';a.click()};
+</script>
+</body>
+</html>
