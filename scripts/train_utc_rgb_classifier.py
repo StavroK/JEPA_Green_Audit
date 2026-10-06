@@ -38,8 +38,23 @@ def feature_stack(rgb: np.ndarray) -> tuple[np.ndarray, list[str]]:
     mean5=box_mean(lum,2)
     tex3=np.sqrt(np.maximum(box_mean(lum*lum,1)-mean3*mean3,0))
     tex5=np.sqrt(np.maximum(box_mean(lum*lum,2)-mean5*mean5,0))
-    feats=np.stack([r,g,b,rn,gn,bn,exg,brightness,green_dom,mean3,mean5,tex3,tex5],axis=-1)
-    names=["r","g","b","rn","gn","bn","exg","brightness","green_dominance","mean3","mean5","texture3","texture5"]
+    mx=np.maximum(np.maximum(r,g),b)
+    mn=np.minimum(np.minimum(r,g),b)
+    chroma=mx-mn
+    saturation=chroma/(mx+1e-6)
+    # Hue-like circular coordinates avoid the 0/1 discontinuity of scalar hue.
+    hue_num=np.sqrt(3.0)*(g-b)
+    hue_den=2.0*r-g-b
+    hue_angle=np.arctan2(hue_num,hue_den)
+    hue_sin=np.sin(hue_angle)
+    hue_cos=np.cos(hue_angle)
+    r_mean3=box_mean(r,1); g_mean3=box_mean(g,1); b_mean3=box_mean(b,1)
+    r_var3=np.maximum(box_mean(r*r,1)-r_mean3*r_mean3,0)
+    g_var3=np.maximum(box_mean(g*g,1)-g_mean3*g_mean3,0)
+    b_var3=np.maximum(box_mean(b*b,1)-b_mean3*b_mean3,0)
+    color_var3=np.sqrt((r_var3+g_var3+b_var3)/3.0)
+    feats=np.stack([r,g,b,rn,gn,bn,exg,brightness,green_dom,chroma,saturation,hue_sin,hue_cos,mean3,mean5,tex3,tex5,color_var3],axis=-1)
+    names=["r","g","b","rn","gn","bn","exg","brightness","green_dominance","chroma","saturation","hue_sin","hue_cos","mean3","mean5","texture3","texture5","color_var3"]
     return feats.astype(np.float32),names
 
 
@@ -47,7 +62,8 @@ def parse_labels(payload: dict, width: int, height: int):
     xs=[];ys=[];targets=[]
     for item in payload.get("labels",[]):
         label=item.get("label")
-        if label not in {"tree","non"}:
+        non_tree_labels={"non","pavement","water","grass","roof","shadow","bare"}
+        if label!="tree" and label not in non_tree_labels:
             continue
         x=int(item["x"]); y=int(item["y"])
         if 0 <= x < width and 0 <= y < height:
@@ -76,6 +92,11 @@ def main():
 
     payload=json.loads(args.labels.read_text(encoding="utf-8"))
     xs,ys,y=parse_labels(payload,w,h)
+    subtype_counts={}
+    for item in payload.get("labels",[]):
+        lab=item.get("label")
+        if lab in {"tree","non","pavement","water","grass","roof","shadow","bare"}:
+            subtype_counts[lab]=subtype_counts.get(lab,0)+1
     if len(y)<20 or len(np.unique(y))<2:
         raise ValueError("Need at least 20 usable labels including both tree and non-tree classes")
     counts=np.bincount(y,minlength=2)
@@ -129,6 +150,7 @@ def main():
       "n_labels":int(len(y)),
       "tree_labels":int((y==1).sum()),
       "non_tree_labels":int((y==0).sum()),
+      "label_subtypes":subtype_counts,
       "cv_balanced_accuracy_mean":float(cv_scores.mean()),
       "cv_balanced_accuracy_sd":float(cv_scores.std()),
       "threshold":args.threshold,
@@ -138,6 +160,7 @@ def main():
     }
     args.output_json.write_text(json.dumps(result,indent=2),encoding="utf-8")
     print(f"Labels: {len(y)} (tree={(y==1).sum()}, non-tree={(y==0).sum()})")
+    print(f"Label subtypes: {subtype_counts}")
     print(f"CV balanced accuracy: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
     print(f"Predicted canopy fraction: {100*mask.mean():.2f}%")
     print(f"Wrote {args.output_probability}")
