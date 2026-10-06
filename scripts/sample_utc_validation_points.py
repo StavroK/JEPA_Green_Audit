@@ -21,8 +21,9 @@ import rasterio
 def load_training_points(path: Path):
     payload=json.loads(path.read_text(encoding="utf-8"))
     pts=[]
+    trainable_labels={"tree","non","pavement","water","grass","roof","shadow","bare"}
     for item in payload.get("labels",[]):
-        if item.get("label") in {"tree","non"}:
+        if item.get("label") in trainable_labels:
             pts.append((int(item["x"]),int(item["y"])))
     return pts
 
