@@ -24,7 +24,13 @@ grass, shadows, dense crowns, isolated crowns, and mixed edges.
 <div class="toolbar">
 <input id="file" type="file" accept="image/png,image/jpeg">
 <button id="tree" class="active">Tree canopy</button>
-<button id="non">Non-tree</button>
+<button id="non">Non-tree generic</button>
+<button id="pavement">Pavement</button>
+<button id="water">Water</button>
+<button id="grass">Grass/low veg</button>
+<button id="roof">Roof/building</button>
+<button id="shadow">Shadow</button>
+<button id="bare">Bare soil</button>
 <button id="uncertain">Uncertain</button>
 <button id="undo">Undo last</button>
 <button id="clear">Clear all</button>
@@ -35,18 +41,25 @@ grass, shadows, dense crowns, isolated crowns, and mixed edges.
 <script>
 const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
 let img=new Image(), labels=[], mode='tree', imageName='';
-const colors={tree:'#00ff55',non:'#ff3b30',uncertain:'#ffd60a'};
+const colors={tree:'#00ff55',non:'#ff3b30',pavement:'#ff6b35',water:'#00b7ff',grass:'#9acd32',roof:'#d96cff',shadow:'#666666',bare:'#c49a6c',uncertain:'#ffd60a'};
 function setMode(m){
  mode=m;
- for(const id of ['tree','non','uncertain']) document.getElementById(id).classList.toggle('active',id===m);
+ for(const id of ['tree','non','pavement','water','grass','roof','shadow','bare','uncertain']) document.getElementById(id).classList.toggle('active',id===m);
 }
 document.getElementById('tree').onclick=()=>setMode('tree');
 document.getElementById('non').onclick=()=>setMode('non');
+document.getElementById('pavement').onclick=()=>setMode('pavement');
+document.getElementById('water').onclick=()=>setMode('water');
+document.getElementById('grass').onclick=()=>setMode('grass');
+document.getElementById('roof').onclick=()=>setMode('roof');
+document.getElementById('shadow').onclick=()=>setMode('shadow');
+document.getElementById('bare').onclick=()=>setMode('bare');
 document.getElementById('uncertain').onclick=()=>setMode('uncertain');
 function counts(){
- const c={tree:0,non:0,uncertain:0};
- labels.forEach(x=>c[x.label]++);
- document.getElementById('counts').textContent=`Tree ${c.tree} · Non-tree ${c.non} · Uncertain ${c.uncertain}`;
+ const c={tree:0,non:0,pavement:0,water:0,grass:0,roof:0,shadow:0,bare:0,uncertain:0};
+ labels.forEach(x=>{ if(c[x.label]!==undefined)c[x.label]++; });
+ const hard=c.non+c.pavement+c.water+c.grass+c.roof+c.shadow+c.bare;
+ document.getElementById('counts').textContent=`Tree ${c.tree} · Non-tree total ${hard} · pavement ${c.pavement} · water ${c.water} · grass ${c.grass} · roof ${c.roof} · shadow ${c.shadow} · bare ${c.bare} · uncertain ${c.uncertain}`;
 }
 function redraw(){
  ctx.clearRect(0,0,canvas.width,canvas.height);
