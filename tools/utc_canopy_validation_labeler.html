@@ -12,7 +12,7 @@ canvas{border:1px solid #555;background:#111;max-width:100%;height:auto}
 </style>
 </head><body>
 <h1>UTC independent validation</h1>
-<p class="note">Load the original RGB preview and the validation-points JSON. Review each highlighted point <strong>without looking at the model overlay</strong>. Label the pixel/location as Tree canopy, Non-tree, or Uncertain. Use Next/Previous to move through the sample.</p>
+<p class="note">Load the original RGB preview and the validation-points JSON. Review each highlighted point <strong>without looking at the model overlay</strong>. Label the pixel/location as Tree canopy, Non-tree, or Uncertain. Use Next/Previous to move through the sample. Marker colors: <strong>red = unreviewed</strong>, <strong>green = tree</strong>, <strong>orange = non-tree</strong>, <strong>yellow = uncertain</strong>.</p>
 <div class="toolbar">
 <label>RGB <input id="imgfile" type="file" accept="image/png,image/jpeg"></label>
 <label>Points JSON <input id="jsonfile" type="file" accept=".json,application/json"></label>
@@ -30,15 +30,23 @@ function draw(){
  canvas.width=img.width;canvas.height=img.height;ctx.drawImage(img,0,0);
  if(payload&&payload.points.length){
   const p=payload.points[index];
-  ctx.beginPath();ctx.arc(p.x,p.y,12,0,Math.PI*2);ctx.lineWidth=4;ctx.strokeStyle='#ff0000';ctx.stroke();
-  ctx.beginPath();ctx.moveTo(p.x-18,p.y);ctx.lineTo(p.x+18,p.y);ctx.moveTo(p.x,p.y-18);ctx.lineTo(p.x,p.y+18);ctx.lineWidth=2;ctx.strokeStyle='#000';ctx.stroke();
+  const statusColor={
+    tree:'#00b050',
+    non:'#ff7a00',
+    uncertain:'#ffd400'
+  };
+  const markerColor=statusColor[p.human_label] || '#ff0000';
+  ctx.beginPath();ctx.arc(p.x,p.y,12,0,Math.PI*2);ctx.lineWidth=4;ctx.strokeStyle=markerColor;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(p.x-18,p.y);ctx.lineTo(p.x+18,p.y);ctx.moveTo(p.x,p.y-18);ctx.lineTo(p.x,p.y+18);ctx.lineWidth=2;ctx.strokeStyle=markerColor;ctx.stroke();
  }
  updateStats();
 }
 function updateStats(){
  if(!payload){document.getElementById('stats').textContent='';return}
  const done=payload.points.filter(p=>p.human_label).length;
- document.getElementById('stats').textContent=`Point ${index+1}/${payload.points.length} · reviewed ${done}`;
+ const current=payload.points[index];
+ const status=current.human_label || 'unreviewed';
+ document.getElementById('stats').textContent=`Point ${index+1}/${payload.points.length} · reviewed ${done} · current: ${status}`;
 }
 document.getElementById('imgfile').onchange=e=>{const f=e.target.files[0];if(!f)return;img.onload=draw;img.src=URL.createObjectURL(f)};
 document.getElementById('jsonfile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{payload=JSON.parse(r.result);index=0;draw()};r.readAsText(f)};
