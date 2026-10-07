@@ -7,7 +7,10 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.models.segmentation import deeplabv3_resnet50,DeepLabV3_ResNet50_Weights
-from scripts.train_utc_unet import PatchDataset,dice_loss,evaluate
+try:
+    from scripts.train_utc_unet import PatchDataset,dice_loss,evaluate
+except ModuleNotFoundError:
+    from train_utc_unet import PatchDataset,dice_loss,evaluate
 
 class DeepLabBinary(nn.Module):
     def __init__(self,pretrained:bool):
