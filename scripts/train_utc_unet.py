@@ -11,6 +11,8 @@ from __future__ import annotations
 import argparse, json, random, time
 from pathlib import Path
 
+from jepa_green_audit.utc_benchmark import load_dataset_manifest
+
 import numpy as np
 from PIL import Image
 import torch
@@ -115,6 +117,7 @@ def evaluate(model,loader,device,threshold=0.5):
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--dataset-dir",type=Path,required=True)
+    p.add_argument("--manifest",type=Path,help="Optional label-efficiency manifest; defaults to dataset_manifest.json")
     p.add_argument("--output-dir",type=Path,required=True)
     p.add_argument("--epochs",type=int,default=40)
     p.add_argument("--batch-size",type=int,default=4)
@@ -128,7 +131,7 @@ def main():
     random.seed(args.seed); np.random.seed(args.seed); torch.manual_seed(args.seed)
     if torch.cuda.is_available(): torch.cuda.manual_seed_all(args.seed)
 
-    dm=json.loads((args.dataset_dir/"dataset_manifest.json").read_text(encoding="utf-8"))
+    dm=load_dataset_manifest(args.dataset_dir,args.manifest)
     splits={s:[r for r in dm["records"] if r["split"]==s] for s in ("train","val","test")}
     if not all(splits.values()): raise ValueError("train/val/test splits must all be non-empty")
 
