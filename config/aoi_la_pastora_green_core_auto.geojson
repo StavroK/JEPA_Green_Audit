@@ -1,0 +1,41 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "la_pastora_green_core_auto",
+        "name": "La Pastora dense-green auto-selected AOI",
+        "selection_method": "two-date Sentinel-2 NDVI worst-year vegetation fraction",
+        "selection_note": "Auto-selected candidate; requires RGB/NDVI/Dynamic World visual QC before adoption as active M3b AOI."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -100.252112409,
+              25.6659435255
+            ],
+            [
+              -100.246078709,
+              25.6659435255
+            ],
+            [
+              -100.246078709,
+              25.6714115577
+            ],
+            [
+              -100.252112409,
+              25.6714115577
+            ],
+            [
+              -100.252112409,
+              25.6659435255
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
