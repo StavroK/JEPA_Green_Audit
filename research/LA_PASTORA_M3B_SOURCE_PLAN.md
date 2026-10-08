@@ -112,3 +112,25 @@ Do not start manual labeling until:
 3. the AOI is visually inspected for dense-green character and major edge
    contamination;
 4. the labeling grid/cell size is chosen from the actual imagery.
+
+
+## Auto-selected dense-green candidate
+
+The reproducible two-date NDVI search selected a 60×60 Sentinel window with worst-year vegetation fraction 0.695. The candidate is now committed as:
+
+`config/aoi_la_pastora_green_core_auto.geojson`
+
+WGS84 bbox:
+
+- west: -100.2521124090
+- south: 25.6659435255
+- east: -100.2460787090
+- north: 25.6714115577
+
+This candidate is **not yet the adopted active AOI**. Run the full visual QC gate first:
+
+```bash
+python scripts/run_la_pastora_auto_qc.py --project mtygreenaudit
+```
+
+The gate regenerates the Sentinel baseline, aligned RGB pair, NDVI masks, Dynamic World maps/confidence, and a six-panel montage. Human labeling remains blocked until that montage is visually reviewed.
