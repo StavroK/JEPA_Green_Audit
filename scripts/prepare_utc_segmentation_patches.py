@@ -57,6 +57,23 @@ def stretch_rgb(arr):
         out[b]=(np.clip((band-lo)/(hi-lo),0,1)*255).astype(np.uint8)
     return np.moveaxis(out,0,-1)
 
+def raw_rgb(arr):
+    rgb=arr[:3]
+    if rgb.dtype != np.uint8:
+        if np.issubdtype(rgb.dtype, np.integer):
+            info=np.iinfo(rgb.dtype)
+            rgb=(np.clip(rgb,info.min,info.max).astype(np.float32)-info.min)/(info.max-info.min)
+            rgb=(rgb*255).astype(np.uint8)
+        else:
+            vals=rgb[np.isfinite(rgb)]
+            if vals.size==0:
+                rgb=np.zeros_like(rgb,dtype=np.uint8)
+            else:
+                lo=float(vals.min()); hi=float(vals.max())
+                if hi<=lo: hi=lo+1.0
+                rgb=(np.clip((rgb-lo)/(hi-lo),0,1)*255).astype(np.uint8)
+    return np.moveaxis(rgb,0,-1)
+
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--image",type=Path,required=True)
@@ -65,6 +82,12 @@ def main():
     p.add_argument("--n",type=int,default=64)
     p.add_argument("--blocks",type=int,default=4)
     p.add_argument("--seed",type=int,default=42)
+    p.add_argument(
+        "--preprocessing",
+        choices=("raw","percentile"),
+        default="raw",
+        help="Patch RGB export preprocessing. Use raw for uint8 orthophotos to avoid per-patch appearance shifts.",
+    )
     args=p.parse_args()
     args.output_dir.mkdir(parents=True,exist_ok=True)
     patch_dir=args.output_dir/"images"; patch_dir.mkdir(exist_ok=True)
@@ -74,12 +97,24 @@ def main():
         records=[]
         for i,rec in enumerate(origins,1):
             win=rasterio.windows.Window(rec["x"],rec["y"],args.patch_size,args.patch_size)
-            rgb=stretch_rgb(src.read([1,2,3],window=win))
+            source_rgb=src.read([1,2,3],window=win)
+            rgb=raw_rgb(source_rgb) if args.preprocessing=="raw" else stretch_rgb(source_rgb)
             name=f"patch_{i:03d}_{rec['split']}_b{rec['block_row']}{rec['block_col']}.png"
             Image.fromarray(rgb,mode="RGB").save(patch_dir/name)
             records.append({"id":i,"file":name,"x":rec["x"],"y":rec["y"],"width":args.patch_size,"height":args.patch_size,**{k:rec[k] for k in ("block_row","block_col","split")}})
     counts={k:sum(r["split"]==k for r in records) for k in ("train","val","test")}
-    manifest={"schema_version":1,"task":"utc_dense_patch_annotation","source_image":str(args.image),"patch_size":args.patch_size,"spatial_blocks":args.blocks,"seed":args.seed,"n_patches":len(records),"split_counts":counts,"patches":records}
+    manifest={
+        "schema_version":1,
+        "task":"utc_dense_patch_annotation",
+        "source_image":str(args.image),
+        "patch_size":args.patch_size,
+        "spatial_blocks":args.blocks,
+        "seed":args.seed,
+        "preprocessing":args.preprocessing,
+        "n_patches":len(records),
+        "split_counts":counts,
+        "patches":records,
+    }
     out=args.output_dir/"manifest.json"
     out.write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     print(f"Wrote {out}"); print(f"Patch images: {patch_dir}"); print(f"Patches: {len(records)}"); print(f"Split counts: {counts}")
