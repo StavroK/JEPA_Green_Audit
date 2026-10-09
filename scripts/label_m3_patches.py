@@ -379,14 +379,17 @@ class LabelingApp:
                 width=max(2, line_width),
             )
 
-            # Add a compact TARGET label near the highlighted cell.
-            label_x = min(max(0, x1_box + 4), max(0, width - 58))
-            label_y = max(0, y0 - 14)
+            # Keep the AOI overview readable: use only a tiny numbered/corner
+            # marker instead of the previous large TARGET banner, which obscured
+            # a meaningful fraction of small Sentinel scenes.
+            tag = f"{grid_row:02d},{grid_col:02d}"
+            label_x = min(max(1, x1_box + 2), max(1, width - 18))
+            label_y = min(max(1, y0 + 1), max(1, height - 8))
             draw.rectangle(
-                (label_x - 2, label_y - 2, label_x + 54, label_y + 12),
-                fill=(255, 0, 0, 230),
+                (label_x - 1, label_y - 1, min(width - 1, label_x + 16), min(height - 1, label_y + 7)),
+                fill=(255, 0, 0, 220),
             )
-            draw.text((label_x, label_y), "TARGET", fill="white")
+            draw.text((label_x, label_y), tag, fill="white")
 
             overview = Image.alpha_composite(overview, overlay).convert("RGB")
             # thumbnail() only shrinks, which left 61x61 Sentinel scenes tiny.
