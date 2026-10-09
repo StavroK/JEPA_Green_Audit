@@ -1,37 +1,58 @@
 {
   "type": "FeatureCollection",
+  "name": "la_pastora_dense_green_auto_candidate",
   "features": [
     {
       "type": "Feature",
       "properties": {
         "id": "la_pastora_green_core_auto",
-        "name": "La Pastora dense-green auto-selected AOI",
-        "selection_method": "two-date Sentinel-2 NDVI worst-year vegetation fraction",
-        "selection_note": "Auto-selected candidate; requires RGB/NDVI/Dynamic World visual QC before adoption as active M3b AOI."
+        "name": "La Pastora auto-selected dense-green candidate",
+        "purpose": "M3b dense-green replication candidate selected from two-date Sentinel NDVI; requires visual QC",
+        "source_candidate": "config\\aoi_la_pastora_candidate_v1.geojson",
+        "selection_method": "maximize minimum 2025/2026 vegetation fraction in fixed Sentinel window",
+        "window_pixels": 60,
+        "vegetation_threshold": 0.3,
+        "score_min_vegetation_fraction": 0.694722,
+        "mean_vegetation_fraction": 0.715972,
+        "2025_vegetation_fraction": 0.737222,
+        "2026_vegetation_fraction": 0.694722,
+        "selected_scenes": {
+          "2025": {
+            "item_id": "S2B_14RLP_20250831_0_L2A",
+            "datetime": "2025-08-31 17:26:47.249000+00:00",
+            "usable_fraction": 0.998252
+          },
+          "2026": {
+            "item_id": "S2C_14RLP_20260910_0_L2A",
+            "datetime": "2026-09-10 17:26:44.230000+00:00",
+            "usable_fraction": 0.999029
+          }
+        },
+        "note": "Research AOI candidate only; not an official park/protected-area boundary"
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
             [
-              -100.252112409,
-              25.6659435255
+              -100.25211240902458,
+              25.665943525543412
             ],
             [
-              -100.246078709,
-              25.6659435255
+              -100.24607870899507,
+              25.665943525543412
             ],
             [
-              -100.246078709,
-              25.6714115577
+              -100.24607870899507,
+              25.67141155774976
             ],
             [
-              -100.252112409,
-              25.6714115577
+              -100.25211240902458,
+              25.67141155774976
             ],
             [
-              -100.252112409,
-              25.6659435255
+              -100.25211240902458,
+              25.665943525543412
             ]
           ]
         ]
