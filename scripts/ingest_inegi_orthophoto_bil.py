@@ -65,6 +65,9 @@ def extract_bil_dataset(archive_path: Path, output_dir: Path) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
+    parser.add_argument("--sheet", default="G14C26A3")
+    parser.add_argument("--acquisition-year", type=int, default=2007)
+    parser.add_argument("--resolution-m", type=float, default=1.0)
     parser.add_argument("--aoi", type=Path, default=DEFAULT_AOI)
     parser.add_argument("--output-tif", type=Path, default=DEFAULT_TIF)
     parser.add_argument("--output-png", type=Path, default=DEFAULT_PNG)
@@ -116,9 +119,9 @@ def main() -> None:
 
     meta = {
         "source_archive": str(args.source),
-        "source_sheet": "G14C26A3",
-        "source_acquisition_year": 2007,
-        "source_resolution_m": 1.0,
+        "source_sheet": args.sheet,
+        "source_acquisition_year": args.acquisition_year,
+        "source_resolution_m": args.resolution_m,
         "source_layout": "BIL",
         "source_bands": 3,
         "source_dtype": "uint8",
@@ -138,7 +141,10 @@ def main() -> None:
     print(f"Wrote {args.output_png}")
     print(f"Wrote {args.metadata}")
     print(f"RGB shape: {rgb.shape}")
-    print("Acquisition year: 2007 | GSD: 1.0 m | bands: 3")
+    print(
+        f"Acquisition year: {args.acquisition_year} | "
+        f"GSD: {args.resolution_m} m | bands: 3 | sheet: {args.sheet}"
+    )
 
 
 if __name__ == "__main__":
