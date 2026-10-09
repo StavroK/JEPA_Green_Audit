@@ -40,6 +40,16 @@
       "verification_status": "catalog_verified_download_pending",
       "usage": "Bare-earth terrain candidate for La Pastora M3b; pair with matching G14C26A4 MDS after direct download and checksum are verified",
       "target_dir": "data/raw/inegi"
+    },
+    {
+      "sheet": "G14C26A4",
+      "product": "Ortofoto digital RGB, escala 1:10 000, 1 m",
+      "filename": "889463305491_b.zip",
+      "source_url": "https://www.inegi.org.mx/contenidos/productos/prod_serv/contenidos/espanol/bvinegi/productos/geografia/ortofoto_1_10/889463305491_b.zip",
+      "sha256": "2929bd0c2f27b2315ef9cb46392b12fba1caa88546ee4f325bb4acb9ca366591",
+      "verification_status": "sha256_pinned",
+      "usage": "Historical 1 m RGB orthophoto candidate for La Pastora same-image M3b cross-site replication; acquisition year must be read from archive metadata before publication claims; not current 2025/2026 vegetation truth",
+      "target_dir": "data/raw/inegi"
     }
   ]
 }
