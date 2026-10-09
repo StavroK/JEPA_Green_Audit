@@ -47,9 +47,18 @@
       "filename": "889463305491_b.zip",
       "source_url": "https://www.inegi.org.mx/contenidos/productos/prod_serv/contenidos/espanol/bvinegi/productos/geografia/ortofoto_1_10/889463305491_b.zip",
       "sha256": "2929bd0c2f27b2315ef9cb46392b12fba1caa88546ee4f325bb4acb9ca366591",
-      "verification_status": "sha256_pinned",
-      "usage": "Historical 1 m RGB orthophoto candidate for La Pastora same-image M3b cross-site replication; acquisition year must be read from archive metadata before publication claims; not current 2025/2026 vegetation truth",
-      "target_dir": "data/raw/inegi"
+      "verification_status": "source_metadata_verified_sha256_pinned",
+      "usage": "Historical October 2007 1 m RGB orthophoto for La Pastora same-image M3b cross-site replication; labels must be created from this same historical image; not current 2025/2026 vegetation truth",
+      "target_dir": "data/raw/inegi",
+      "acquisition_year": 2007,
+      "acquisition_month": "October",
+      "source_resolution_m": 1,
+      "source_crs_description": "UTM zone 14, ITRF92, GRS80",
+      "source_dimensions": {
+        "columns": 5696,
+        "rows": 7026
+      },
+      "quality_note": "INEGI metadata states the G14C26A4 orthophoto presents sweep/distortion due to relief ('barrido debido al relieve'); inspect the La Pastora crop before labeling."
     }
   ]
 }
