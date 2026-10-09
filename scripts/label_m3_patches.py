@@ -27,9 +27,9 @@ DEFAULT_CSV = Path("data/labels/fundidora_m3/fundidora_patch_labels_8x8.csv")
 RGB_DIR = Path("data/interim/fundidora")
 ALLOWED_LABELS = {"vegetation", "non_vegetation", "uncertain"}
 GRID = 8
-TARGET_DISPLAY_SIZE = 280
-CONTEXT_DISPLAY_SIZE = 360
-OVERVIEW_DISPLAY_SIZE = 420
+TARGET_DISPLAY_SIZE = 300
+CONTEXT_DISPLAY_SIZE = 340
+OVERVIEW_DISPLAY_SIZE = 380
 
 
 def load_rows(csv_path: Path) -> tuple[list[dict[str, str]], list[str]]:
@@ -86,8 +86,12 @@ class LabelingApp:
         self.photo = None
 
         root.title("JEPA Green Audit — M3 RGB Labeling")
-        root.geometry("1280x820")
-        root.minsize(900, 650)
+        root.geometry("1450x900")
+        root.minsize(1050, 700)
+        try:
+            root.state("zoomed")
+        except tk.TclError:
+            pass
 
         # Scrollable content area so controls remain reachable on smaller screens.
         shell = tk.Frame(root)
@@ -121,6 +125,7 @@ class LabelingApp:
         self.status_var = tk.StringVar()
         self.counts_var = tk.StringVar()
         self.current_label_var = tk.StringVar()
+        self.resolution_var = tk.StringVar()
 
         tk.Label(content, textvariable=self.title_var, font=("Segoe UI", 16, "bold")).pack(pady=(12, 4))
         tk.Label(
@@ -128,19 +133,24 @@ class LabelingApp:
             text="Label the dominant visible cover in the highlighted review cell using RGB only. Use only the source imagery for this labeling set.",
             font=("Segoe UI", 10),
         ).pack()
+        tk.Label(
+            content,
+            textvariable=self.resolution_var,
+            font=("Segoe UI", 9, "bold"),
+        ).pack(pady=(2, 0))
 
         image_frame = tk.Frame(content)
         image_frame.pack(pady=10)
 
         left = tk.Frame(image_frame)
         left.grid(row=0, column=0, padx=8)
-        tk.Label(left, text="Target cell", font=("Segoe UI", 10, "bold")).pack()
+        tk.Label(left, text="Target cell — source pixels enlarged", font=("Segoe UI", 10, "bold")).pack()
         self.target_label = tk.Label(left, bd=2, relief="sunken")
         self.target_label.pack(pady=4)
 
         middle = tk.Frame(image_frame)
         middle.grid(row=0, column=1, padx=8)
-        tk.Label(middle, text="RGB context", font=("Segoe UI", 10, "bold")).pack()
+        tk.Label(middle, text="RGB context — target outlined in red", font=("Segoe UI", 10, "bold")).pack()
         self.context_label = tk.Label(middle, bd=2, relief="sunken")
         self.context_label.pack(pady=4)
 
@@ -159,10 +169,12 @@ class LabelingApp:
             "(roughly more than half).\n"
             "Non-vegetation (N): roads, roofs, buildings, bare ground, water, or other "
             "non-vegetated surfaces dominate the target cell.\n"
-            "Uncertain (U): the target cell is genuinely mixed, blurred, obscured, or you "
+            "Uncertain (U): the target cell is genuinely mixed, low-resolution, obscured, or you "
             "cannot make a confident dominant-cover judgment.\n"
-            "Use only the RGB target/context/AOI views. Do not consult NDVI or SCL. "
-            "Classify visible cover only; do not infer tree health."
+            "The target view intentionally preserves native source pixels (no smoothing). "
+            "Use context and AOI location to interpret those pixels, but label only the target cell.\n"
+            "Use only the RGB target/context/AOI views. Do not consult NDVI, Dynamic World, SCL, "
+            "or model predictions. Classify visible cover only; do not infer tree health."
         )
         tk.Label(
             criteria,
@@ -220,6 +232,12 @@ class LabelingApp:
             command=lambda: self.set_label("uncertain"),
             width=16,
         ).pack(side="left", padx=4, pady=6)
+        tk.Button(
+            sticky,
+            text="Skip →",
+            command=self.forward,
+            width=12,
+        ).pack(side="right", padx=4, pady=6)
         tk.Button(
             sticky,
             text="← Back",
@@ -286,11 +304,22 @@ class LabelingApp:
             x0, x1 = int(x_edges[grid_col]), int(x_edges[grid_col + 1])
             y0, y1 = int(y_edges[grid_row]), int(y_edges[grid_row + 1])
 
-            # Target cell: smoothed enlargement for visual interpretation.
-            target = src.crop((x0, y0, x1, y1)).resize(
+            # Target cell: preserve native Sentinel/source pixels. Smoothing can
+            # invent visual boundaries that do not exist in the source data.
+            target_native = src.crop((x0, y0, x1, y1))
+            target = target_native.resize(
                 (TARGET_DISPLAY_SIZE, TARGET_DISPLAY_SIZE),
-                Image.Resampling.BICUBIC,
+                Image.Resampling.NEAREST,
             )
+            target_draw = ImageDraw.Draw(target)
+            sx = TARGET_DISPLAY_SIZE / max(1, target_native.width)
+            sy = TARGET_DISPLAY_SIZE / max(1, target_native.height)
+            for px in range(1, target_native.width):
+                x = round(px * sx)
+                target_draw.line((x, 0, x, TARGET_DISPLAY_SIZE), fill=(80, 80, 80), width=1)
+            for py in range(1, target_native.height):
+                y = round(py * sy)
+                target_draw.line((0, y, TARGET_DISPLAY_SIZE, y), fill=(80, 80, 80), width=1)
 
             # Context: roughly a 5x5-cell neighborhood around the target.
             radius = 2
@@ -298,16 +327,24 @@ class LabelingApp:
             c1 = min(grid_cols, grid_col + radius + 1)
             r0 = max(0, grid_row - radius)
             r1 = min(grid_rows, grid_row + radius + 1)
-            context = src.crop(
-                (
-                    int(x_edges[c0]),
-                    int(y_edges[r0]),
-                    int(x_edges[c1]),
-                    int(y_edges[r1]),
-                )
-            ).resize(
+            cx0, cx1 = int(x_edges[c0]), int(x_edges[c1])
+            cy0, cy1 = int(y_edges[r0]), int(y_edges[r1])
+            context_native = src.crop((cx0, cy0, cx1, cy1))
+            context = context_native.resize(
                 (CONTEXT_DISPLAY_SIZE, CONTEXT_DISPLAY_SIZE),
-                Image.Resampling.BICUBIC,
+                Image.Resampling.NEAREST,
+            )
+            context_draw = ImageDraw.Draw(context)
+            csx = CONTEXT_DISPLAY_SIZE / max(1, context_native.width)
+            csy = CONTEXT_DISPLAY_SIZE / max(1, context_native.height)
+            rx0 = round((x0 - cx0) * csx)
+            ry0 = round((y0 - cy0) * csy)
+            rx1 = round((x1 - cx0) * csx) - 1
+            ry1 = round((y1 - cy0) * csy) - 1
+            context_draw.rectangle(
+                (rx0, ry0, max(rx0 + 1, rx1), max(ry0 + 1, ry1)),
+                outline=(255, 0, 0),
+                width=4,
             )
 
             # AOI overview with an obvious red marker for the current review cell.
@@ -352,9 +389,16 @@ class LabelingApp:
             draw.text((label_x, label_y), "TARGET", fill="white")
 
             overview = Image.alpha_composite(overview, overlay).convert("RGB")
-            overview.thumbnail(
-                (OVERVIEW_DISPLAY_SIZE, OVERVIEW_DISPLAY_SIZE),
-                Image.Resampling.BICUBIC,
+            # thumbnail() only shrinks, which left 61x61 Sentinel scenes tiny.
+            # Explicit nearest-neighbor enlargement keeps the AOI legible and
+            # preserves the true source-pixel structure.
+            scale = min(
+                OVERVIEW_DISPLAY_SIZE / max(1, width),
+                OVERVIEW_DISPLAY_SIZE / max(1, height),
+            )
+            overview = overview.resize(
+                (max(1, round(width * scale)), max(1, round(height * scale))),
+                Image.Resampling.NEAREST,
             )
 
         self.target_photo = ImageTk.PhotoImage(target)
@@ -365,6 +409,13 @@ class LabelingApp:
         self.overview_label.configure(image=self.overview_photo)
         self.title_var.set(
             f"{row['year']} · row {int(row['row']):02d} · col {int(row['col']):02d}"
+        )
+        cell_w = x1 - x0
+        cell_h = y1 - y0
+        self.resolution_var.set(
+            f"Native source: {width}×{height}px · review grid: {grid_cols}×{grid_rows} · "
+            f"current cell: {cell_w}×{cell_h} source pixels. "
+            "Use U if dominant cover is not defensible from these pixels."
         )
         label = row.get("label", "").strip() or "UNLABELED"
         self.current_label_var.set(f"Current label: {label}")
