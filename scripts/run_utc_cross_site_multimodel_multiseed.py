@@ -28,7 +28,10 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from scripts.train_utc_unet import PatchDataset, UNetSmall, evaluate
+try:
+    from scripts.train_utc_unet import PatchDataset, UNetSmall, evaluate
+except ModuleNotFoundError:
+    from train_utc_unet import PatchDataset, UNetSmall, evaluate
 
 
 MODEL_FILES={
