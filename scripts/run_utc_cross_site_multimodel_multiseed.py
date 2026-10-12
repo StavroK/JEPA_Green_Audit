@@ -145,6 +145,8 @@ def main():
     p.add_argument("--budgets",type=int,nargs="+",default=[25,50])
     p.add_argument("--models",nargs="+",choices=("unet","segformer","dinov2","ijepa"),
                    default=["unet","segformer","dinov2","ijepa"])
+    p.add_argument("--preprocessing",choices=("raw","percentile"),default="percentile",
+                   help="Target-site RGB preprocessing. Use raw for v2 raw-consistent models.")
     p.add_argument("--ijepa-upstream",type=Path,default=Path("vendor/ijepa"))
     p.add_argument("--ijepa-encoder-checkpoint",type=Path,default=Path("models/IN1K-vit.h.14-300e.pth.tar"))
     args=p.parse_args()
@@ -180,7 +182,7 @@ def main():
                     "--image",str(args.image),
                     "--labels",str(args.labels),
                     "--output",str(out),
-                    "--preprocessing","percentile",
+                    "--preprocessing",args.preprocessing,
                 ]
                 if model=="ijepa":
                     cmd += [
@@ -208,6 +210,7 @@ def main():
         "models":args.models,
         "seeds":args.seeds,
         "label_budgets_percent":args.budgets,
+        "target_preprocessing":args.preprocessing,
         "rows":rows,
         "aggregate":aggregate,
         "note":"All target metrics are point-based. No La Pastora calibration or fitting.",
