@@ -127,6 +127,27 @@ The product is positioned around measurable outputs—coverage, loss/gain, trend
 
 See [BUSINESS_CASE.md](BUSINESS_CASE.md).
 
+## Validated research result — cross-site UTC transfer
+
+The M3b benchmark evaluates Fundidora-trained canopy models on an independent **La Pastora 2007** site using **240 model-blind human point labels** and Fundidora-only threshold selection.
+
+| Model | Labels | Balanced accuracy | Tree F1 | Point IoU |
+|---|---:|---:|---:|---:|
+| U-Net | 25% | 0.520 ± 0.012 | 0.078 ± 0.042 | 0.041 ± 0.023 |
+| SegFormer-B0 | 25% | 0.560 ± 0.049 | 0.211 ± 0.160 | 0.125 ± 0.106 |
+| **DINOv2 frozen + decoder** | **25%** | **0.804 ± 0.004** | **0.847 ± 0.018** | **0.734 ± 0.028** |
+| I-JEPA frozen + decoder | 25% | 0.570 ± 0.038 | 0.361 ± 0.244 | 0.242 ± 0.184 |
+| U-Net | 50% | 0.520 ± 0.032 | 0.087 ± 0.101 | 0.048 ± 0.059 |
+| SegFormer-B0 | 50% | 0.525 ± 0.015 | 0.097 ± 0.057 | 0.052 ± 0.032 |
+| **DINOv2 frozen + decoder** | **50%** | **0.824 ± 0.021** | **0.874 ± 0.012** | **0.776 ± 0.019** |
+| I-JEPA frozen + decoder | 50% | 0.633 ± 0.067 | 0.530 ± 0.181 | 0.377 ± 0.169 |
+
+**Result:** frozen DINOv2 features show a large, stable cross-site label-efficiency advantage over U-Net, SegFormer-B0, and frozen I-JEPA on this point-based benchmark.
+
+These are **point-classification metrics**, not dense canopy-area metrics. La Pastora labels were not used for model fitting or threshold calibration.
+
+See [research/M3B_CROSS_SITE_RESULTS.md](research/M3B_CROSS_SITE_RESULTS.md) for protocol, limitations, reproducibility paths, and interpretation.
+
 ## Status
 
 **Prototype / research project.** Not yet a validated environmental monitoring product.
