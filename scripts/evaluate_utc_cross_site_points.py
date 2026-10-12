@@ -22,10 +22,13 @@ try:
     from scripts.train_utc_unet import UNetSmall
     from scripts.train_utc_segformer import SegFormerBinary, IMAGENET_MEAN as SF_MEAN, IMAGENET_STD as SF_STD
     from scripts.train_utc_dinov2 import DINOv2Binary, IMAGENET_MEAN as DINO_MEAN, IMAGENET_STD as DINO_STD
+    from scripts.train_utc_ijepa_decoder import IJEPAFeatureDecoder
 except ModuleNotFoundError:
     from train_utc_unet import UNetSmall
     from train_utc_segformer import SegFormerBinary, IMAGENET_MEAN as SF_MEAN, IMAGENET_STD as SF_STD
     from train_utc_dinov2 import DINOv2Binary, IMAGENET_MEAN as DINO_MEAN, IMAGENET_STD as DINO_STD
+    from train_utc_ijepa_decoder import IJEPAFeatureDecoder
+from jepa_green_audit.ijepa_encoder import FrozenIJEPAEncoder
 
 
 def percentile_stretch_rgb(rgb: np.ndarray) -> np.ndarray:
@@ -114,6 +117,48 @@ def predict_full_image(model, rgb:np.ndarray, device:torch.device, tile:int, str
     return prob_sum/weight
 
 
+def load_ijepa_decoder(checkpoint:Path, device:torch.device):
+    ck=torch.load(checkpoint,map_location=device,weights_only=False)
+    hidden=int(ck.get("hidden",256))
+    decoder=IJEPAFeatureDecoder(hidden=hidden).to(device)
+    decoder.load_state_dict(ck["model_state"])
+    decoder.eval()
+    return decoder,ck
+
+
+@torch.no_grad()
+def predict_full_image_ijepa(
+    decoder,
+    encoder:FrozenIJEPAEncoder,
+    rgb:np.ndarray,
+    device:torch.device,
+    tile:int,
+    stride:int,
+    preprocessing:str="percentile",
+):
+    h,w=rgb.shape[:2]
+    prob_sum=np.zeros((h,w),dtype=np.float32)
+    weight=np.zeros((h,w),dtype=np.float32)
+    for y in tile_starts(h,tile,stride):
+        for x in tile_starts(w,tile,stride):
+            patch=rgb[y:min(y+tile,h),x:min(x+tile,w)]
+            ph,pw=patch.shape[:2]
+            if preprocessing=="percentile":
+                patch=percentile_stretch_rgb(patch)
+            if ph<tile or pw<tile:
+                padded=np.zeros((tile,tile,3),dtype=np.uint8)
+                padded[:ph,:pw]=patch
+                patch=padded
+            grid=encoder.encode_rgb_patch_grid(patch)
+            ten=torch.from_numpy(np.moveaxis(grid,-1,0))[None].to(device)
+            p=torch.sigmoid(decoder(ten))[0,0].cpu().numpy()[:ph,:pw]
+            prob_sum[y:y+ph,x:x+pw]+=p
+            weight[y:y+ph,x:x+pw]+=1.0
+    if np.any(weight==0):
+        raise RuntimeError("Sliding-window I-JEPA inference left uncovered pixels")
+    return prob_sum/weight
+
+
 def point_metrics(labels:list[str], probs:list[float], threshold:float)->dict:
     keep=[i for i,h in enumerate(labels) if h in {"tree","non"}]
     y=np.asarray([1 if labels[i]=="tree" else 0 for i in keep],dtype=np.uint8)
@@ -139,7 +184,7 @@ def point_metrics(labels:list[str], probs:list[float], threshold:float)->dict:
 
 def main():
     p=argparse.ArgumentParser()
-    p.add_argument("--model-type",choices=("unet","segformer","dinov2"),required=True)
+    p.add_argument("--model-type",choices=("unet","segformer","dinov2","ijepa"),required=True)
     p.add_argument("--checkpoint",type=Path,required=True)
     p.add_argument("--threshold",type=float,required=True,help="Locked Fundidora validation threshold")
     p.add_argument("--image",type=Path,required=True)
@@ -149,6 +194,8 @@ def main():
     p.add_argument("--stride",type=int,default=128)
     p.add_argument("--preprocessing",choices=("raw","percentile"),default="percentile",
                    help="Use percentile for legacy Fundidora v1 models trained on per-patch stretched RGB.")
+    p.add_argument("--ijepa-upstream",type=Path,default=Path("vendor/ijepa"))
+    p.add_argument("--ijepa-encoder-checkpoint",type=Path,default=Path("models/IN1K-vit.h.14-300e.pth.tar"))
     args=p.parse_args()
 
     device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -157,8 +204,19 @@ def main():
     if int(payload.get("width_px",-1))!=rgb.shape[1] or int(payload.get("height_px",-1))!=rgb.shape[0]:
         raise ValueError("Point-label dimensions do not match evaluation image")
 
-    model,normalizer,ck=load_model(args.model_type,args.checkpoint,device)
-    prob=predict_full_image(model,rgb,device,args.tile_size,args.stride,normalizer,args.preprocessing)
+    if args.model_type=="ijepa":
+        decoder,ck=load_ijepa_decoder(args.checkpoint,device)
+        encoder=FrozenIJEPAEncoder(
+            upstream_dir=args.ijepa_upstream,
+            checkpoint_path=args.ijepa_encoder_checkpoint,
+            device=str(device),
+        )
+        prob=predict_full_image_ijepa(
+            decoder,encoder,rgb,device,args.tile_size,args.stride,args.preprocessing
+        )
+    else:
+        model,normalizer,ck=load_model(args.model_type,args.checkpoint,device)
+        prob=predict_full_image(model,rgb,device,args.tile_size,args.stride,normalizer,args.preprocessing)
 
     labels=[];probs=[];rows=[]
     for pt in payload["points"]:
