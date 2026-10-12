@@ -100,7 +100,7 @@ document.getElementById('prev').onclick=()=>{if(plan){index=Math.max(0,index-1);
 document.getElementById('next').onclick=()=>{if(plan){index=Math.min(plan.points.length-1,index+1);draw()}};
 document.getElementById('nextTodo').onclick=()=>{if(!plan)return;for(let k=1;k<=plan.points.length;k++){const j=(index+k)%plan.points.length;if(!plan.points[j].human_label){index=j;draw();break}}};
 document.getElementById('undo').onclick=()=>{const p=current();if(p){p.human_label='';p.detail_label='';p.reviewer='';draw()}};
-document.getElementById('export').onclick=()=>{if(!plan)return;plan.reviewed_image=imageName;const blob=new Blob([JSON.stringify(plan,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='la_pastora_2007_point_labels.json';a.click()};
+document.getElementById('export').onclick=()=>{if(!plan)return;plan.reviewed_image=imageName;const blob=new Blob([JSON.stringify(plan,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);const site=(plan.site||'utc_site').replace(/[^a-zA-Z0-9_-]+/g,'_');const date=(plan.date_label||'date').replace(/[^a-zA-Z0-9_-]+/g,'_');a.download=`${site}_${date}_point_labels.json`;a.click()};
 document.addEventListener('keydown',e=>{
  const target=e.target;
  if(target && (target.tagName==='INPUT' || target.tagName==='TEXTAREA' || target.isContentEditable)) return;
