@@ -66,6 +66,12 @@ def main():
     for archive in archives:
         try:
             row=inspect_archive(archive,geom)
+        except ValueError as e:
+            message=str(e)
+            if "Expected exactly one BIL" in message and "found 0" in message:
+                row={"archive":str(archive),"skipped_non_bil":True,"reason":"ZIP does not contain a BIL orthophoto dataset"}
+            else:
+                row={"archive":str(archive),"error":f"{type(e).__name__}: {e}"}
         except Exception as e:
             row={"archive":str(archive),"error":f"{type(e).__name__}: {e}"}
         rows.append(row)
@@ -80,6 +86,8 @@ def main():
             status="FULL COVERAGE"
         elif r.get("intersects"):
             status="PARTIAL OVERLAP"
+        elif r.get("skipped_non_bil"):
+            status="SKIP NON-BIL"
         elif "error" in r:
             status="ERROR"
         else:
@@ -87,6 +95,8 @@ def main():
         print(f"{status:15s} {r['archive']}")
         if "error" in r:
             print(f"  {r['error']}")
+        elif r.get("skipped_non_bil"):
+            print(f"  {r['reason']}")
 
     result={"aoi":str(args.aoi),"archives":rows,
             "full_coverage":[r["archive"] for r in covering],
