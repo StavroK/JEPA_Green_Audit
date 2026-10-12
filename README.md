@@ -127,26 +127,28 @@ The product is positioned around measurable outputs—coverage, loss/gain, trend
 
 See [BUSINESS_CASE.md](BUSINESS_CASE.md).
 
-## Validated research result — cross-site UTC transfer
+## Validated research result — raw-consistent cross-site UTC transfer
 
-The M3b benchmark evaluates Fundidora-trained canopy models on an independent **La Pastora 2007** site using **240 model-blind human point labels** and Fundidora-only threshold selection.
+The M3c benchmark evaluates Fundidora-trained canopy models on an independent **La Pastora 2007** site using **240 model-blind human point labels**, Fundidora-only threshold selection, and raw-consistent 1 m RGB preprocessing at both sites.
 
 | Model | Labels | Balanced accuracy | Tree F1 | Point IoU |
 |---|---:|---:|---:|---:|
-| U-Net | 25% | 0.520 ± 0.012 | 0.078 ± 0.042 | 0.041 ± 0.023 |
-| SegFormer-B0 | 25% | 0.560 ± 0.049 | 0.211 ± 0.160 | 0.125 ± 0.106 |
-| **DINOv2 frozen + decoder** | **25%** | **0.804 ± 0.004** | **0.847 ± 0.018** | **0.734 ± 0.028** |
-| I-JEPA frozen + decoder | 25% | 0.570 ± 0.038 | 0.361 ± 0.244 | 0.242 ± 0.184 |
-| U-Net | 50% | 0.520 ± 0.032 | 0.087 ± 0.101 | 0.048 ± 0.059 |
-| SegFormer-B0 | 50% | 0.525 ± 0.015 | 0.097 ± 0.057 | 0.052 ± 0.032 |
-| **DINOv2 frozen + decoder** | **50%** | **0.824 ± 0.021** | **0.874 ± 0.012** | **0.776 ± 0.019** |
-| I-JEPA frozen + decoder | 50% | 0.633 ± 0.067 | 0.530 ± 0.181 | 0.377 ± 0.169 |
+| U-Net | 25% | 0.685 ± 0.170 | 0.821 ± 0.016 | 0.697 ± 0.023 |
+| SegFormer-B0 | 25% | 0.718 ± 0.075 | 0.610 ± 0.163 | 0.453 ± 0.158 |
+| **DINOv2 frozen + decoder** | **25%** | **0.806 ± 0.029** | **0.860 ± 0.024** | **0.755 ± 0.036** |
+| I-JEPA frozen + decoder | 25% | 0.569 ± 0.049 | 0.410 ± 0.188 | 0.271 ± 0.141 |
+| U-Net | 50% | 0.806 ± 0.022 | 0.849 ± 0.039 | 0.739 ± 0.058 |
+| **DINOv2 frozen + decoder** | **50%** | **0.801 ± 0.022** | **0.860 ± 0.021** | **0.755 ± 0.033** |
+| U-Net | 100% | **0.827 ± 0.036** | **0.879 ± 0.043** | **0.787 ± 0.067** |
+| DINOv2 frozen + decoder | 100% | 0.806 ± 0.011 | 0.875 ± 0.014 | 0.777 ± 0.022 |
 
-**Result:** frozen DINOv2 features show a large, stable cross-site label-efficiency advantage over U-Net, SegFormer-B0, and frozen I-JEPA on this point-based benchmark.
+**Result:** DINOv2 shows the strongest and most stable **label-efficient** cross-site transfer at reduced annotation budgets. At 100% labels, U-Net becomes statistically competitive and slightly higher in mean F1/IoU, while DINOv2 remains more stable across seeds and has near-zero mean point-prevalence bias.
 
-These are **point-classification metrics**, not dense canopy-area metrics. La Pastora labels were not used for model fitting or threshold calibration.
+The earlier v1 percentile-stretched benchmark is retained as a preprocessing-sensitivity experiment; raw-consistent v2 results supersede it for model-ranking claims.
 
-See [research/M3B_CROSS_SITE_RESULTS.md](research/M3B_CROSS_SITE_RESULTS.md) for protocol, limitations, reproducibility paths, and interpretation.
+These remain **point-classification metrics**, not dense canopy-area metrics. La Pastora labels were not used for model fitting or threshold calibration.
+
+See [research/M3C_RAW_CONSISTENT_RESULTS.md](research/M3C_RAW_CONSISTENT_RESULTS.md) for the full 12-condition table, v1→v2 comparison, limitations, and reproducibility paths.
 
 ## Status
 
