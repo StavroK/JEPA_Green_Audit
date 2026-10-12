@@ -18,3 +18,10 @@ def test_resolve_fundidora_dataset_direct(tmp_path):
     (d/"masks").mkdir()
     (d/"dataset_manifest.json").write_text('{"records":[]}',encoding="utf-8")
     assert resolve_fundidora_dataset(d)==d
+
+
+def test_raw_preprocessing_cli_option_documented():
+    from pathlib import Path
+    text=Path("scripts/run_utc_cross_site_multimodel_multiseed.py").read_text(encoding="utf-8")
+    assert 'choices=("raw","percentile")' in text
+    assert '"--preprocessing",args.preprocessing' in text
