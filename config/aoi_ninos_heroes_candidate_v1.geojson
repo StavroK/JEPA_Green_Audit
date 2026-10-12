@@ -1,0 +1,26 @@
+{
+  "type": "FeatureCollection",
+  "name": "aoi_ninos_heroes_candidate_v1",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "site": "parque_ninos_heroes_candidate",
+        "purpose": "M3d third-site external UTC validation candidate",
+        "selection": "approximately 600 m square centered on Parque Ninos Heroes; candidate analysis window, not an official park boundary",
+        "center_lat": 25.71401,
+        "center_lon": -100.31366
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-100.31670, 25.71126],
+          [-100.31062, 25.71126],
+          [-100.31062, 25.71676],
+          [-100.31670, 25.71676],
+          [-100.31670, 25.71126]
+        ]]
+      }
+    }
+  ]
+}
