@@ -102,8 +102,12 @@ document.getElementById('nextTodo').onclick=()=>{if(!plan)return;for(let k=1;k<=
 document.getElementById('undo').onclick=()=>{const p=current();if(p){p.human_label='';p.detail_label='';p.reviewer='';draw()}};
 document.getElementById('export').onclick=()=>{if(!plan)return;plan.reviewed_image=imageName;const blob=new Blob([JSON.stringify(plan,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='la_pastora_2007_point_labels.json';a.click()};
 document.addEventListener('keydown',e=>{
+ const target=e.target;
+ if(target && (target.tagName==='INPUT' || target.tagName==='TEXTAREA' || target.isContentEditable)) return;
  const k=e.key.toLowerCase();const map={t:'tree',n:'non',g:'grass',p:'pavement',r:'roof',b:'bare',s:'shadow',w:'water',u:'uncertain'};
- if(map[k])setLabel(map[k]); else if(e.key==='ArrowLeft')document.getElementById('prev').click(); else if(e.key==='ArrowRight')document.getElementById('next').click();
+ if(map[k]){e.preventDefault();setLabel(map[k]);}
+ else if(e.key==='ArrowLeft'){e.preventDefault();document.getElementById('prev').click();}
+ else if(e.key==='ArrowRight'){e.preventDefault();document.getElementById('next').click();}
 });
 </script>
 </body>
