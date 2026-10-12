@@ -142,6 +142,14 @@ The M3c benchmark evaluates Fundidora-trained canopy models on an independent **
 | U-Net | 100% | **0.827 ± 0.036** | **0.879 ± 0.043** | **0.787 ± 0.067** |
 | DINOv2 frozen + decoder | 100% | 0.806 ± 0.011 | 0.875 ± 0.014 | 0.777 ± 0.022 |
 
+![M3c Tree F1 vs label budget](docs/assets/m3c/publication_f1_vs_budget.png)
+
+*Figure 1. Raw-consistent Fundidora → La Pastora cross-site Tree F1 across 25%, 50%, and 100% source-label budgets. Error bars show variation across seeds 42–46.*
+
+![M3c point prevalence bias](docs/assets/m3c/publication_prevalence_bias_vs_budget.png)
+
+*Figure 2. Cross-site point-prevalence bias. Values closer to zero indicate better agreement with the sampled target prevalence; this is not a UTC area-bias estimate.*
+
 **Result:** DINOv2 shows the strongest and most stable **label-efficient** cross-site transfer at reduced annotation budgets. At 100% labels, U-Net becomes statistically competitive and slightly higher in mean F1/IoU, while DINOv2 remains more stable across seeds and has near-zero mean point-prevalence bias.
 
 The earlier v1 percentile-stretched benchmark is retained as a preprocessing-sensitivity experiment; raw-consistent v2 results supersede it for model-ranking claims.
