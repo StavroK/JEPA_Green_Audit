@@ -60,8 +60,18 @@ def load_model(model_type:str, checkpoint:Path, device:torch.device):
         normalizer=None
     elif model_type=="segformer":
         model_name=ck.get("model_name","nvidia/mit-b0")
-        pretrained=bool(ck.get("pretrained",True))
-        model=SegFormerBinary(pretrained=pretrained,model_name=model_name).to(device)
+        try:
+            from transformers import SegformerConfig, SegformerForSemanticSegmentation
+        except ModuleNotFoundError as e:
+            raise RuntimeError("transformers is required for SegFormer inference") from e
+        cfg=SegformerConfig.from_pretrained(model_name)
+        cfg.num_labels=1
+        cfg.id2label={0:"canopy"}
+        cfg.label2id={"canopy":0}
+        model=SegFormerBinary.__new__(SegFormerBinary)
+        torch.nn.Module.__init__(model)
+        model.model=SegformerForSemanticSegmentation(cfg)
+        model=model.to(device)
         model.load_state_dict(ck["model_state"])
         normalizer=(SF_MEAN,SF_STD)
     elif model_type=="dinov2":
