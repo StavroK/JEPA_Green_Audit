@@ -39,6 +39,32 @@ M3c removes that caveat by rebuilding Fundidora model inputs from the original 2
 | I-JEPA frozen + decoder | 50% | 0.605 ± 0.020 | 0.484 ± 0.110 | 0.325 ± 0.098 | -39.17 ± 13.24 pp |
 | I-JEPA frozen + decoder | 100% | 0.600 ± 0.075 | 0.446 ± 0.267 | 0.317 ± 0.218 | -39.17 ± 19.93 pp |
 
+## Publication figures
+
+![Tree F1 vs label budget](../docs/assets/m3c/publication_f1_vs_budget.png)
+
+*Figure 1. Mean Tree F1 ± sample standard deviation across seeds 42–46. DINOv2 is strongest and most stable at reduced label budgets; U-Net becomes competitive with full supervision.*
+
+![Balanced accuracy vs label budget](../docs/assets/m3c/publication_balanced_accuracy_vs_budget.png)
+
+*Figure 2. Mean balanced accuracy ± sample standard deviation. The large U-Net variance at 25% reflects unstable low-label behavior across seeds.*
+
+![Point prevalence bias vs label budget](../docs/assets/m3c/publication_prevalence_bias_vs_budget.png)
+
+*Figure 3. Mean sampled-point prevalence bias ± sample standard deviation. DINOv2 remains close to zero across label budgets. This metric is not UTC area bias.*
+
+### Cross-site point-error examples
+
+![DINOv2 25% point errors](../docs/assets/m3c/point_error_dinov2_25.png)
+
+*Figure 4. DINOv2 at 25% Fundidora labels. Circles indicate points correctly classified by majority vote across seeds; X marks majority-vote errors.*
+
+![U-Net 100% point errors](../docs/assets/m3c/point_error_unet_100.png)
+
+*Figure 5. U-Net at 100% Fundidora labels, showing the fully supervised baseline after raw-consistent preprocessing.*
+
+The machine-readable publication table is available at `docs/assets/m3c/publication_results_table.csv`.
+
 ## What changed relative to v1
 
 The raw-consistent correction materially changes the supervised baselines:
