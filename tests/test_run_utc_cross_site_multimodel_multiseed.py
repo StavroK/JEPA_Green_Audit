@@ -9,3 +9,12 @@ def test_summarize_groups_model_and_budget():
     s=summarize(rows)
     assert s["unet"]["25"]["n_seeds"]==2
     assert s["dinov2"]["25"]["n_seeds"]==1
+
+
+def test_resolve_fundidora_dataset_direct(tmp_path):
+    from scripts.run_utc_cross_site_multimodel_multiseed import resolve_fundidora_dataset
+    d=tmp_path/"fundidora_dense"
+    (d/"images").mkdir(parents=True)
+    (d/"masks").mkdir()
+    (d/"dataset_manifest.json").write_text('{"records":[]}',encoding="utf-8")
+    assert resolve_fundidora_dataset(d)==d
