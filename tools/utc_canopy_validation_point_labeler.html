@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UTC Independent Point Validation Labeler</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:16px;background:#f5f5f5;color:#222}
+.toolbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+button,input{font:inherit} button.active{outline:3px solid #222}
+.main{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+canvas{border:1px solid #555;background:#111}
+#overview{max-width:68vw;height:auto} #zoom{image-rendering:pixelated}
+.note{max-width:1150px;line-height:1.35}.stats{font-weight:700}
+kbd{background:#eee;border:1px solid #bbb;border-radius:3px;padding:1px 4px}
+</style>
+</head>
+<body>
+<h1>UTC independent point validation</h1>
+<p class="note">Load the 2007 RGB image and the pre-generated point plan. Label the <strong>highlighted point only</strong>. Do not use model predictions, NDVI, Dynamic World, or dense polygon masks. Use <strong>Uncertain</strong> whenever the pixel cannot be classified confidently from RGB.</p>
+<div class="toolbar">
+<label>RGB <input id="imageFile" type="file" accept="image/png,image/jpeg"></label>
+<label>Point plan <input id="planFile" type="file" accept=".json,application/json"></label>
+<label>Reviewer <input id="reviewer" type="text" size="12"></label>
+<button id="tree">T Tree canopy</button>
+<button id="non">N Non-tree generic</button>
+<button id="grass">G Grass/low veg</button>
+<button id="pavement">P Pavement/road</button>
+<button id="roof">R Roof/building</button>
+<button id="bare">B Bare soil</button>
+<button id="shadow">S Shadow</button>
+<button id="water">W Water</button>
+<button id="uncertain">U Uncertain</button>
+</div>
+<div class="toolbar">
+<button id="prev">← Previous</button>
+<button id="next">Next →</button>
+<button id="nextTodo">Next unlabeled</button>
+<button id="undo">Clear current label</button>
+<button id="export">Export reviewed JSON</button>
+<span id="stats" class="stats"></span>
+</div>
+<div class="main">
+<div><h3>Whole AOI</h3><canvas id="overview"></canvas></div>
+<div><h3>Local context (31×31 source pixels)</h3><canvas id="zoom" width="310" height="310"></canvas>
+<p id="detail"></p></div>
+</div>
+<p class="note">Keyboard: <kbd>T</kbd> tree · <kbd>N</kbd> non-tree · <kbd>G</kbd> grass · <kbd>P</kbd> pavement · <kbd>R</kbd> roof · <kbd>B</kbd> bare · <kbd>S</kbd> shadow · <kbd>W</kbd> water · <kbd>U</kbd> uncertain · arrows navigate.</p>
+<script>
+const ov=document.getElementById('overview'),oc=ov.getContext('2d');
+const zoom=document.getElementById('zoom'),zc=zoom.getContext('2d');
+let img=new Image(),plan=null,index=0,imageName='';
+const detailToHuman={tree:'tree',non:'non',grass:'non',pavement:'non',roof:'non',bare:'non',shadow:'non',water:'non',uncertain:'uncertain'};
+function current(){return plan&&plan.points?plan.points[index]:null}
+function firstUnlabeled(){
+ if(!plan)return 0;
+ const i=plan.points.findIndex(p=>!p.human_label);
+ return i>=0?i:Math.max(0,plan.points.length-1);
+}
+function counts(){
+ if(!plan)return {tree:0,non:0,uncertain:0,unlabeled:0};
+ const c={tree:0,non:0,uncertain:0,unlabeled:0};
+ for(const p of plan.points){const h=p.human_label||'unlabeled';c[h]=(c[h]||0)+1}
+ return c;
+}
+function draw(){
+ if(!img.width||!plan)return;
+ ov.width=img.width;ov.height=img.height;oc.drawImage(img,0,0);
+ for(let i=0;i<plan.points.length;i++){
+   const p=plan.points[i]; if(!p.human_label)continue;
+   oc.beginPath();oc.arc(p.x,p.y,2.5,0,Math.PI*2);
+   oc.fillStyle=p.human_label==='tree'?'#00ff55':(p.human_label==='non'?'#ff3b30':'#ffd60a');oc.fill();
+ }
+ const p=current();
+ oc.beginPath();oc.arc(p.x,p.y,7,0,Math.PI*2);oc.strokeStyle='#ffff00';oc.lineWidth=2;oc.stroke();
+ oc.beginPath();oc.moveTo(p.x-10,p.y);oc.lineTo(p.x+10,p.y);oc.moveTo(p.x,p.y-10);oc.lineTo(p.x,p.y+10);oc.stroke();
+
+ const radius=15,x0=Math.max(0,p.x-radius),y0=Math.max(0,p.y-radius);
+ const x1=Math.min(img.width,p.x+radius+1),y1=Math.min(img.height,p.y+radius+1);
+ zc.imageSmoothingEnabled=false;zc.clearRect(0,0,zoom.width,zoom.height);
+ zc.drawImage(img,x0,y0,x1-x0,y1-y0,0,0,zoom.width,zoom.height);
+ const zx=(p.x-x0+0.5)/(x1-x0)*zoom.width,zy=(p.y-y0+0.5)/(y1-y0)*zoom.height;
+ zc.beginPath();zc.arc(zx,zy,9,0,Math.PI*2);zc.strokeStyle='#ffff00';zc.lineWidth=3;zc.stroke();
+ zc.beginPath();zc.moveTo(zx-16,zy);zc.lineTo(zx+16,zy);zc.moveTo(zx,zy-16);zc.lineTo(zx,zy+16);zc.stroke();
+
+ const c=counts();
+ document.getElementById('stats').textContent=`Point ${index+1}/${plan.points.length} · tree ${c.tree} · non ${c.non} · uncertain ${c.uncertain} · unlabeled ${c.unlabeled}`;
+ document.getElementById('detail').textContent=`Grid ${p.grid_row},${p.grid_col} · pixel (${p.x}, ${p.y}) · current: ${p.human_label||'UNLABELED'}${p.detail_label?' / '+p.detail_label:''}`;
+}
+function setLabel(detail){
+ const p=current();if(!p)return;
+ p.detail_label=detail;p.human_label=detailToHuman[detail];
+ const reviewer=document.getElementById('reviewer').value.trim();
+ if(reviewer&&!p.reviewer)p.reviewer=reviewer;
+ if(index<plan.points.length-1)index++;draw();
+}
+for(const id of Object.keys(detailToHuman))document.getElementById(id).onclick=()=>setLabel(id);
+document.getElementById('imageFile').onchange=e=>{const f=e.target.files[0];if(!f)return;imageName=f.name;img.onload=draw;img.src=URL.createObjectURL(f)};
+document.getElementById('planFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{plan=JSON.parse(rd.result);index=firstUnlabeled();draw()};rd.readAsText(f)};
+document.getElementById('prev').onclick=()=>{if(plan){index=Math.max(0,index-1);draw()}};
+document.getElementById('next').onclick=()=>{if(plan){index=Math.min(plan.points.length-1,index+1);draw()}};
+document.getElementById('nextTodo').onclick=()=>{if(!plan)return;for(let k=1;k<=plan.points.length;k++){const j=(index+k)%plan.points.length;if(!plan.points[j].human_label){index=j;draw();break}}};
+document.getElementById('undo').onclick=()=>{const p=current();if(p){p.human_label='';p.detail_label='';p.reviewer='';draw()}};
+document.getElementById('export').onclick=()=>{if(!plan)return;plan.reviewed_image=imageName;const blob=new Blob([JSON.stringify(plan,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='la_pastora_2007_point_labels.json';a.click()};
+document.addEventListener('keydown',e=>{
+ const k=e.key.toLowerCase();const map={t:'tree',n:'non',g:'grass',p:'pavement',r:'roof',b:'bare',s:'shadow',w:'water',u:'uncertain'};
+ if(map[k])setLabel(map[k]); else if(e.key==='ArrowLeft')document.getElementById('prev').click(); else if(e.key==='ArrowRight')document.getElementById('next').click();
+});
+</script>
+</body>
+</html>
