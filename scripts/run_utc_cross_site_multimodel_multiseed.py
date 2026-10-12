@@ -43,6 +43,48 @@ MODEL_FILES={
 METRIC_KEYS=("balanced_accuracy","precision_tree","recall_tree","f1_tree","iou_tree","point_prevalence_bias_pp")
 
 
+def resolve_fundidora_dataset(path:Path)->Path:
+    """Resolve the dense Fundidora dataset directory containing dataset_manifest.json.
+
+    Accepts an exact directory when known. If it is missing or does not contain
+    the manifest, search under data/labels for Fundidora candidates and require
+    an unambiguous match with sibling images/ and masks/ directories.
+    """
+    direct=path/"dataset_manifest.json"
+    if direct.exists():
+        return path
+
+    candidates=[]
+    roots=[Path("data/labels"), path.parent if path.parent.exists() else None]
+    seen=set()
+    for root in roots:
+        if root is None or not root.exists():
+            continue
+        for manifest in root.rglob("dataset_manifest.json"):
+            parent=manifest.parent
+            key=str(parent.resolve())
+            if key in seen:
+                continue
+            seen.add(key)
+            if "fundidora" not in key.lower():
+                continue
+            if (parent/"images").exists() and (parent/"masks").exists():
+                candidates.append(parent)
+
+    if len(candidates)==1:
+        print(f"Resolved Fundidora dataset: {candidates[0]}")
+        return candidates[0]
+    if not candidates:
+        raise FileNotFoundError(
+            f"Could not find Fundidora dataset_manifest.json from {path}. "
+            "Run: find data -type f -name dataset_manifest.json -print"
+        )
+    raise RuntimeError(
+        "Multiple Fundidora dataset candidates found; pass one explicitly:\n  "
+        + "\n  ".join(str(x) for x in candidates)
+    )
+
+
 def stored_locked_threshold(metrics_path:Path)->float:
     payload=json.loads(metrics_path.read_text(encoding="utf-8"))
     if "test_at_locked_threshold" in payload:
@@ -107,6 +149,7 @@ def main():
     p.add_argument("--ijepa-encoder-checkpoint",type=Path,default=Path("models/IN1K-vit.h.14-300e.pth.tar"))
     args=p.parse_args()
 
+    args.fundidora_dataset=resolve_fundidora_dataset(args.fundidora_dataset)
     args.output_dir.mkdir(parents=True,exist_ok=True)
     rows=[]
     for model in args.models:
